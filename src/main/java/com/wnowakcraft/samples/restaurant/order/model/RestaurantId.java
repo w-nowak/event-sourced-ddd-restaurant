@@ -1,18 +1,14 @@
 package com.wnowakcraft.samples.restaurant.order.model;
 
-import com.wnowakcraft.samples.restaurant.core.domain.AbstractAggregate;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import com.wnowakcraft.samples.restaurant.core.domain.DomainBoundBusinessId;
 
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-public class RestaurantId extends AbstractAggregate.PrefixedUuidAggregateId {
-    private RestaurantId(String domainName, String aggregateType, String aggregateId) {
-        super(domainName, aggregateType, aggregateId);
+public class RestaurantId extends DomainBoundBusinessId {
+    private RestaurantId(String aggregateId, String domainName, String aggregateName, char aggregateTypeSymbol) {
+        super(aggregateId, domainName, aggregateName, aggregateTypeSymbol);
     }
 
     public static RestaurantId of(String aggregateId)
     {
-        return new RestaurantId("RESTAURANT", "RESTAURANT", aggregateId);
+        return new RestaurantId(aggregateId, "RESTAURANT", "RESTAURANT", 'A');
     }
 }

@@ -1,19 +1,21 @@
 package com.wnowakcraft.samples.restaurant.core.domain;
 
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-
-import java.io.Serializable;
 import java.util.Collection;
 
 public interface Aggregate<ID extends Aggregate.AggregateId, E extends Event> {
-    ID getAggregateId();
+    ID getId();
     Collection<E> getChanges();
 
-    @Getter
-    @RequiredArgsConstructor
-    abstract class AggregateId<T extends Serializable & Comparable<T>> implements Id<T> {
-        @NonNull private final T id;
+    abstract class AggregateId extends DomainBoundBusinessId {
+        private static final char AGGREGATE_TYPE_SYMBOL = 'A';
+
+
+        protected AggregateId(String domainName, String domainObjectName) {
+            super(domainName, domainObjectName, AGGREGATE_TYPE_SYMBOL);
+        }
+
+        protected AggregateId(String aggregateId, String domainName, String domainObjectName) {
+            super(aggregateId, domainName, domainObjectName, AGGREGATE_TYPE_SYMBOL);
+        }
     }
 }

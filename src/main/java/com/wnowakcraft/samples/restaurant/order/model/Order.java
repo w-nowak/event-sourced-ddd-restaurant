@@ -57,13 +57,13 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
     //public void process(Collection<OrderEvent> orderEvents)
 
     public void cancel() {
-        final var orderCanceledEvent = new OrderCanceledEvent(getAggregateId());
+        final var orderCanceledEvent = new OrderCanceledEvent(getId());
         changes.add(orderCanceledEvent);
         apply(orderCanceledEvent);
     }
 
     public void approve() {
-        final var  orderApprovedEvent = new OrderApprovedEvent(getAggregateId());
+        final var  orderApprovedEvent = new OrderApprovedEvent(getId());
         changes.add(orderApprovedEvent);
         apply(orderApprovedEvent);
     }
@@ -94,16 +94,16 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
         private final String name;
     }
 
-    public static class OrderId extends AbstractAggregate.PrefixedUuidAggregateId {
+    public static final class OrderId extends AggregateId {
         private OrderId() {
             super(OrderSubdomain.NAME, AGGREGATE_NAME);
         }
 
         private OrderId(String id) {
-            super(OrderSubdomain.NAME, AGGREGATE_NAME, id);
+            super(id, OrderSubdomain.NAME, AGGREGATE_NAME);
         }
 
-        public static OrderId newOrderId() {
+        private static OrderId newOrderId() {
             return new OrderId();
         }
 

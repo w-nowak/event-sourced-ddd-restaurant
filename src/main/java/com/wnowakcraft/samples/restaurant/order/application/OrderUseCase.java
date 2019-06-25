@@ -22,9 +22,9 @@ public class OrderUseCase {
 
         var newOrder = Order.newOrder(CustomerId.of(customerId), RestaurantId.of(restaurantId));
 
-        eventStore.append(OrderId.newOrderId(), newOrder.getChanges());
+        eventStore.append(newOrder.getId(), newOrder.getChanges());
 
-        return newOrder.getAggregateId().getId();
+        return newOrder.getId().getId();
     }
 
     public void approveOrder(String orderId) {

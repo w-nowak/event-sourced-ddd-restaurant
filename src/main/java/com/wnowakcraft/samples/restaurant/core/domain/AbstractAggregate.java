@@ -35,7 +35,7 @@ public abstract class AbstractAggregate<ID extends AggregateId, E extends Event,
     protected abstract void restoreFrom(S snapshot);
 
     @Override
-    public ID getAggregateId() {
+    public ID getId() {
         return aggregateId;
     }
 
@@ -44,45 +44,4 @@ public abstract class AbstractAggregate<ID extends AggregateId, E extends Event,
         return List.copyOf(changes);
     }
 
-    public abstract static class PrefixedUuidAggregateId extends AggregateId<String> {
-        private static final String SEPARATOR = "-";
-
-        protected PrefixedUuidAggregateId(String domainName, String aggregateType) {
-            super(
-                    idPrefixOf(
-                            requireNonEmpty(domainName, "domainName"),
-                            requireNonEmpty(aggregateType, "aggregateType")
-                    )
-                    + SEPARATOR
-                    + threeMostSignificantComponentsOf(UUID.randomUUID())
-            );
-        }
-
-        protected PrefixedUuidAggregateId(String domainName, String aggregateType, String aggregateId) {
-            super(
-                    verifyAggregateIdCorrectness(
-                            requireNonEmpty(domainName, "domainName"),
-                            requireNonEmpty(aggregateType, "aggregateType"),
-                            requireNonEmpty(aggregateId, "aggregateId")
-                    ));
-        }
-
-        private static String verifyAggregateIdCorrectness(String domainName, String aggregateType, String aggregateId) {
-            requireThat(
-                    aggregateId.startsWith(idPrefixOf(domainName, aggregateType)),
-                    format("aggregateId is not valid identifier for %s domain and %s aggregate", domainName, aggregateType)
-            );
-
-            return aggregateId;
-        }
-
-        private static String threeMostSignificantComponentsOf(UUID uuid) {
-            final String uuidString = uuid.toString();
-            return uuidString.substring(uuidString.indexOf(SEPARATOR, uuidString.indexOf(SEPARATOR)));
-        }
-
-        private static String idPrefixOf(String domainName, String aggregateType) {
-            return domainName + SEPARATOR + aggregateType;
-        }
-    }
 }
