@@ -5,10 +5,9 @@ import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.AggregateId;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
-import static com.wnowakcraft.preconditions.Preconditions.*;
-import static java.lang.String.format;
+import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
+import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 
 public abstract class AbstractAggregate<ID extends AggregateId, E extends Event, S extends Snapshot>
         implements Aggregate<ID, E> {
@@ -25,7 +24,10 @@ public abstract class AbstractAggregate<ID extends AggregateId, E extends Event,
 
     protected AbstractAggregate(ID aggregateId, S snapshot, Collection<E> events) {
         this.aggregateId = requireNonNull(aggregateId, "aggregateId");
+        requireNonNull(snapshot, "snapshot");
+        requireNonNull(events, "events");
 
+        restoreFrom(snapshot);
         applyAll(events);
         this.changes = new LinkedList<>();
     }

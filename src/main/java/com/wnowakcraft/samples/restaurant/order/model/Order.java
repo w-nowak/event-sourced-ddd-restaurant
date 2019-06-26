@@ -12,7 +12,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @Getter
 public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSnapshot> {
-    private static final String AGGREGATE_NAME = "ORDER";
+    static final String AGGREGATE_NAME = "ORDER";
 
     private RestaurantId restaurantId;
     private Status status;
@@ -40,8 +40,16 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
         return new Order(firstOrderEvent.getConcernedAggregateId(), List.copyOf(events));
     }
 
+    public static Order restoreFrom(OrderSnapshot orderSnapshot, Collection<OrderEvent> events) {
+        return new Order(orderSnapshot, List.copyOf(events));
+    }
+
     private Order(OrderId orderId, Collection<OrderEvent> orderEvents) {
         super(orderId, orderEvents);
+    }
+
+    private Order(OrderSnapshot orderSnapshot, Collection<OrderEvent> orderEvents) {
+        super(orderSnapshot.getAggregateId(), orderSnapshot, orderEvents);
     }
 
     @Override
@@ -50,11 +58,10 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
     }
 
     @Override
-    protected void restoreFrom(OrderSnapshot snapshot) {
-
+    protected void restoreFrom(OrderSnapshot orderSnapshot) {
+        this.restaurantId = orderSnapshot.getRestaurantId();
+        this.status = orderSnapshot.getOrderStatus();
     }
-
-    //public void process(Collection<OrderEvent> orderEvents)
 
     public void cancel() {
         final var orderCanceledEvent = new OrderCanceledEvent(getId());
@@ -66,6 +73,10 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
         final var  orderApprovedEvent = new OrderApprovedEvent(getId());
         changes.add(orderApprovedEvent);
         apply(orderApprovedEvent);
+    }
+
+    public OrderSnapshot takeSnapshot() {
+        return OrderSnapshot.newSnapshot(getId(), restaurantId, status);
     }
 
     void apply(OrderCreatedEvent orderCreatedEvent) {
