@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import static com.wnowakcraft.preconditions.Preconditions.*;
@@ -16,13 +17,11 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
 
     private RestaurantId restaurantId;
     private Status status;
+    private Collection<OrderItem> orderItems = new LinkedList<>();
 
-    public static Order newOrder(CustomerId customerId, RestaurantId restaurantId) {
-        requireNonNull(customerId, "customerId");
-        requireNonNull(restaurantId, "restaurantId");
-
+    public static Order newOrder(CustomerId customerId, RestaurantId restaurantId, Collection<OrderItem> orderItems) {
         final OrderId orderId = OrderId.newOrderId();
-        final OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(orderId, customerId, restaurantId);
+        final OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(orderId, customerId, restaurantId, orderItems);
 
         final Order order = new Order(orderId, List.of(orderCreatedEvent));
         order.changes.add(orderCreatedEvent);
@@ -81,6 +80,7 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
 
     void apply(OrderCreatedEvent orderCreatedEvent) {
         this.restaurantId = orderCreatedEvent.getRestaurantId();
+        this.orderItems = orderCreatedEvent.getOrderItems();
         this.status = Status.APPROVAL_PENDING;
     }
 
