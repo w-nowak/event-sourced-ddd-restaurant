@@ -1,6 +1,7 @@
 package com.wnowakcraft.samples.restaurant.core.domain;
 
 import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.AggregateId;
+import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.Version;
 
 import java.time.Instant;
 
@@ -8,6 +9,7 @@ public interface Snapshot <ID extends Snapshot.SnapshotId, AID extends Aggregate
     ID getSnapshotId();
     AID getAggregateId();
     Instant getCreationDate();
+    Version getAggregateVersion();
 
     abstract class SnapshotId extends DomainBoundBusinessId {
         private static final char SNAPSHOT_TYPE_SYMBOL = 'S';

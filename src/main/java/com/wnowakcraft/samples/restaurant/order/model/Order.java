@@ -23,32 +23,32 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
         final OrderId orderId = OrderId.newOrderId();
         final OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(orderId, customerId, restaurantId, orderItems);
 
-        final Order order = new Order(orderId, List.of(orderCreatedEvent));
+        final Order order = new Order(orderId, List.of(orderCreatedEvent), Version.NONE);
         order.changes.add(orderCreatedEvent);
 
         return order;
     }
 
-    public static Order restoreFrom(Collection<OrderEvent> events) {
+    public static Order restoreFrom(Collection<OrderEvent> events, Version version) {
         requireNonEmpty(events, "events");
 
         final OrderEvent firstOrderEvent = events.iterator().next();
         requireThat(firstOrderEvent instanceof OrderCreatedEvent,
                 "Invalid event stream. Fist Order event needs to be OrderCreatedEvent");
 
-        return new Order(firstOrderEvent.getConcernedAggregateId(), List.copyOf(events));
+        return new Order(firstOrderEvent.getConcernedAggregateId(), List.copyOf(events), version);
     }
 
-    public static Order restoreFrom(OrderSnapshot orderSnapshot, Collection<OrderEvent> events) {
-        return new Order(orderSnapshot, List.copyOf(events));
+    public static Order restoreFrom(OrderSnapshot orderSnapshot, Collection<OrderEvent> events, Version version) {
+        return new Order(orderSnapshot, List.copyOf(events), version);
     }
 
-    private Order(OrderId orderId, Collection<OrderEvent> orderEvents) {
-        super(orderId, orderEvents);
+    private Order(OrderId orderId, Collection<OrderEvent> orderEvents, Version version) {
+        super(orderId, orderEvents, version);
     }
 
-    private Order(OrderSnapshot orderSnapshot, Collection<OrderEvent> orderEvents) {
-        super(orderSnapshot.getAggregateId(), orderSnapshot, orderEvents);
+    private Order(OrderSnapshot orderSnapshot, Collection<OrderEvent> orderEvents, Version version) {
+        super(orderSnapshot.getAggregateId(), orderSnapshot, orderEvents, version);
     }
 
     @Override

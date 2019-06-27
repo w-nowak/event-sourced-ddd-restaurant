@@ -11,21 +11,24 @@ import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 
 public abstract class AbstractAggregate<ID extends AggregateId, E extends Event, S extends Snapshot>
         implements Aggregate<ID, E> {
-    protected final ID aggregateId;
+    private final ID aggregateId;
+    private final Version version;
     protected final Collection<E> changes;
 
-    protected AbstractAggregate(ID aggregateId, Collection<E> events) {
+    protected AbstractAggregate(ID aggregateId, Collection<E> events, Version version) {
         this.aggregateId = requireNonNull(aggregateId, "aggregateId");
         requireNonEmpty(events, "events");
+        this.version = requireNonNull(version, "version");
 
         applyAll(events);
         this.changes = new LinkedList<>();
     }
 
-    protected AbstractAggregate(ID aggregateId, S snapshot, Collection<E> events) {
+    protected AbstractAggregate(ID aggregateId, S snapshot, Collection<E> events, Version version) {
         this.aggregateId = requireNonNull(aggregateId, "aggregateId");
         requireNonNull(snapshot, "snapshot");
         requireNonNull(events, "events");
+        this.version = requireNonNull(version, "version");
 
         restoreFrom(snapshot);
         applyAll(events);
@@ -46,4 +49,8 @@ public abstract class AbstractAggregate<ID extends AggregateId, E extends Event,
         return List.copyOf(changes);
     }
 
+    @Override
+    public Version getVersion() {
+        return version;
+    }
 }

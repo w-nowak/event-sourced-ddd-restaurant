@@ -1,6 +1,7 @@
 package com.wnowakcraft.samples.restaurant.order.model;
 
 import com.wnowakcraft.samples.restaurant.core.domain.AbstractSnapshot;
+import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.order.model.Order.OrderId;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -21,20 +22,20 @@ public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.OrderSnapshotI
         requireNonNull(restaurantId, "restaurantId");
         requireNonNull(orderStatus, "orderStatus");
 
-        return new OrderSnapshot(OrderSnapshotId.newId(), orderId, Instant.now(), restaurantId, orderStatus);
+        return new OrderSnapshot(OrderSnapshotId.newId(), orderId, Instant.now(), Version.NONE, restaurantId, orderStatus);
     }
 
-    public static OrderSnapshot recreateFrom(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate,
+    public static OrderSnapshot recreateFrom(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate, Version version,
                                              RestaurantId restaurantId, Order.Status orderStatus) {
         requireNonNull(restaurantId, "restaurantId");
         requireNonNull(orderStatus, "orderStatus");
 
-        return new OrderSnapshot(snapshotId, orderId, creationDate, restaurantId, orderStatus);
+        return new OrderSnapshot(snapshotId, orderId, creationDate, version, restaurantId, orderStatus);
     }
 
-    private OrderSnapshot(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate,
+    private OrderSnapshot(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate, Version version,
                           RestaurantId restaurantId, Order.Status orderStatus) {
-        super(snapshotId, orderId, creationDate);
+        super(snapshotId, orderId, creationDate, version);
         this.restaurantId = restaurantId;
         this.orderStatus = orderStatus;
     }
