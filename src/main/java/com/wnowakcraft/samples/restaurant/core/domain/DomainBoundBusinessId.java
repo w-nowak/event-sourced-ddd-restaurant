@@ -15,6 +15,7 @@ import static java.lang.String.format;
 @EqualsAndHashCode
 public abstract class DomainBoundBusinessId implements Id<String> {
     private static final String SEPARATOR = "-";
+    private static final String FIRST_THREE_UUUID_GROUPS_REGEX = "\\w{8}" + SEPARATOR + "\\w{4}" + SEPARATOR + "\\w{4}";
     private final String id;
 
     protected DomainBoundBusinessId(String domainObjectId, String domainObjectName, char domainObjectType) {
@@ -38,7 +39,8 @@ public abstract class DomainBoundBusinessId implements Id<String> {
     private static void verifyAggregateIdCorrectness(String domainObjectId, String domainName, String domainObjectName,
                                                      char domainObjectType) {
         requireThat(
-                domainObjectId.startsWith(idPrefixOf(domainName, domainObjectName, domainObjectType)),
+                domainObjectId.matches(
+                        idPrefixOf(domainName, domainObjectName, domainObjectType) + SEPARATOR + FIRST_THREE_UUUID_GROUPS_REGEX),
                 format("%s is not valid identifier for %s domain and %s domain object of type %c",
                         domainObjectId, domainName, domainObjectName, domainObjectType)
         );
