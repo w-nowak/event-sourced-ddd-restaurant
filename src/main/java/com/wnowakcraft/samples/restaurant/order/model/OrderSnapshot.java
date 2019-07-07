@@ -10,6 +10,7 @@ import lombok.ToString;
 import java.time.Instant;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
+import static com.wnowakcraft.samples.restaurant.core.utils.ApplicationTime.instantNow;
 
 @Getter
 @ToString(callSuper = true)
@@ -22,7 +23,7 @@ public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.OrderSnapshotI
         requireNonNull(restaurantId, "restaurantId");
         requireNonNull(orderStatus, "orderStatus");
 
-        return new OrderSnapshot(OrderSnapshotId.newId(), orderId, Instant.now(), Version.NONE, restaurantId, orderStatus);
+        return new OrderSnapshot(OrderSnapshotId.newId(), orderId, instantNow(), Version.NONE, restaurantId, orderStatus);
     }
 
     public static OrderSnapshot recreateFrom(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate, Version version,

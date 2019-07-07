@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.Instant;
 
+import static com.wnowakcraft.samples.restaurant.core.utils.ApplicationTime.instantNow;
 import static lombok.AccessLevel.PROTECTED;
 
 @Getter
@@ -17,6 +18,6 @@ public abstract class AbstractEvent<ID extends AggregateId> implements Event<ID>
     @NonNull private final Instant generatedOn;
 
     protected AbstractEvent(ID concernedAggregateId) {
-        this(concernedAggregateId, SequenceNumber.NOT_ASSIGNED, Instant.now());
+        this(concernedAggregateId, SequenceNumber.NOT_ASSIGNED, instantNow());
     }
 }
