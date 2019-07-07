@@ -45,8 +45,8 @@ public abstract class DomainBoundBusinessId implements Id<String> {
     }
 
     private static String threeMostSignificantComponentsOf(UUID uuid) {
-        final String uuidString = uuid.toString();
-        return uuidString.substring(uuidString.indexOf(SEPARATOR, uuidString.indexOf(SEPARATOR)));
+        final var endOfThirdUuidGroup = 18;
+        return uuid.toString().substring(0, endOfThirdUuidGroup);
     }
 
     private static String idPrefixOf(String domainName, String domainObjectName, char domainObjectType) {
