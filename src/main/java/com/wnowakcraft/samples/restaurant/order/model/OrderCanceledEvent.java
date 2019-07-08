@@ -1,21 +1,20 @@
 package com.wnowakcraft.samples.restaurant.order.model;
 
 import com.wnowakcraft.samples.restaurant.core.domain.AbstractEvent;
-import com.wnowakcraft.samples.restaurant.order.model.Order.OrderId;
 
 import java.time.Instant;
 
-public final class OrderCanceledEvent extends AbstractEvent<OrderId> implements OrderEvent {
+public final class OrderCanceledEvent extends AbstractEvent<Order.Id> implements OrderEvent {
 
-    public OrderCanceledEvent restoreFrom(OrderId orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
+    public OrderCanceledEvent restoreFrom(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
         return new OrderCanceledEvent(orderId, sequenceNumber, generatedOn);
     }
 
-    public OrderCanceledEvent(OrderId orderId) {
+    public OrderCanceledEvent(Order.Id orderId) {
         super(orderId);
     }
 
-    private OrderCanceledEvent(OrderId orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
+    private OrderCanceledEvent(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
         super(orderId, sequenceNumber, generatedOn);
     }
 

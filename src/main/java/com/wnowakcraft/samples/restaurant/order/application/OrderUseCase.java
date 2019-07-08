@@ -4,7 +4,6 @@ import com.wnowakcraft.samples.restaurant.core.domain.EventStore;
 import com.wnowakcraft.samples.restaurant.core.domain.EventStore.EventStream;
 import com.wnowakcraft.samples.restaurant.core.domain.SnapshotRepository;
 import com.wnowakcraft.samples.restaurant.order.model.*;
-import com.wnowakcraft.samples.restaurant.order.model.Order.OrderId;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -16,8 +15,8 @@ import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
 
 @RequiredArgsConstructor
 public class OrderUseCase {
-    @NonNull private final EventStore<OrderEvent, Order, OrderId> eventStore;
-    @NonNull private final SnapshotRepository<OrderSnapshot, OrderId> snapshotRepository;
+    @NonNull private final EventStore<OrderEvent, Order, Order.Id> eventStore;
+    @NonNull private final SnapshotRepository<OrderSnapshot, Order.Id> snapshotRepository;
 
     public String createOrder(String customerId, String restaurantId, List<OrderLine> orderLines) {
         requireNonEmpty(orderLines, "orderLines");
@@ -40,7 +39,7 @@ public class OrderUseCase {
     }
 
     public void approveOrder(String orderId) {
-        final var anOrderId = OrderId.of(orderId);
+        final var anOrderId = Order.Id.of(orderId);
 
         var order = snapshotRepository.findLatestSnapshotFor(anOrderId)
                 .map(s -> restoreOrderFrom(s, eventStore.loadEventsFor(anOrderId, s.getAggregateVersion())))

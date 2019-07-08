@@ -12,7 +12,7 @@ import static com.wnowakcraft.preconditions.Preconditions.*;
 import static lombok.AccessLevel.PRIVATE;
 
 @Getter
-public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSnapshot> {
+public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot> {
     static final String AGGREGATE_NAME = "ORDER";
 
     private RestaurantId restaurantId;
@@ -20,8 +20,8 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
     private Collection<OrderItem> orderItems = new LinkedList<>();
 
     public static Order newOrder(CustomerId customerId, RestaurantId restaurantId, Collection<OrderItem> orderItems) {
-        final OrderId orderId = OrderId.newOrderId();
-        final OrderCreatedEvent orderCreatedEvent = new OrderCreatedEvent(orderId, customerId, restaurantId, orderItems);
+        final var orderId = Order.Id.newId();
+        final var orderCreatedEvent = new OrderCreatedEvent(orderId, customerId, restaurantId, orderItems);
 
         final Order order = new Order(orderId, List.of(orderCreatedEvent), Version.NONE);
         order.changes.add(orderCreatedEvent);
@@ -43,7 +43,7 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
         return new Order(orderSnapshot, List.copyOf(events), version);
     }
 
-    private Order(OrderId orderId, Collection<OrderEvent> orderEvents, Version version) {
+    private Order(Order.Id orderId, Collection<OrderEvent> orderEvents, Version version) {
         super(orderId, orderEvents, version);
     }
 
@@ -105,21 +105,21 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
         private final String name;
     }
 
-    public static final class OrderId extends AggregateId {
-        private OrderId() {
+    public static final class Id extends AggregateId {
+        private Id() {
             super(OrderSubdomain.NAME, AGGREGATE_NAME);
         }
 
-        private OrderId(String id) {
+        private Id(String id) {
             super(id, OrderSubdomain.NAME, AGGREGATE_NAME);
         }
 
-        private static OrderId newOrderId() {
-            return new OrderId();
+        private static Id newId() {
+            return new Id();
         }
 
-        public static OrderId of(String id) {
-            return new OrderId(id);
+        public static Id of(String id) {
+            return new Id(id);
         }
     }
 
