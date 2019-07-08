@@ -75,7 +75,7 @@ public class Order extends AbstractAggregate<Order.OrderId, OrderEvent, OrderSna
     }
 
     public OrderSnapshot takeSnapshot() {
-        return OrderSnapshot.newSnapshot(getId(), restaurantId, status);
+        return OrderSnapshot.newSnapshot(getId(), restaurantId, status, orderItems);
     }
 
     void apply(OrderCreatedEvent orderCreatedEvent) {

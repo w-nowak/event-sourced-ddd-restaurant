@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.Instant;
+import java.util.Collection;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 import static com.wnowakcraft.samples.restaurant.core.utils.ApplicationTime.instantNow;
@@ -18,27 +19,31 @@ import static com.wnowakcraft.samples.restaurant.core.utils.ApplicationTime.inst
 public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.OrderSnapshotId, OrderId> {
     private final RestaurantId restaurantId;
     private final Order.Status orderStatus;
+    private final Collection<OrderItem> orderItems;
 
-    static OrderSnapshot newSnapshot(OrderId orderId, RestaurantId restaurantId, Order.Status orderStatus) {
+    static OrderSnapshot newSnapshot(OrderId orderId, RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
         requireNonNull(restaurantId, "restaurantId");
         requireNonNull(orderStatus, "orderStatus");
+        requireNonNull(orderItems, "orderItems");
 
-        return new OrderSnapshot(OrderSnapshotId.newId(), orderId, instantNow(), Version.NONE, restaurantId, orderStatus);
+        return new OrderSnapshot(OrderSnapshotId.newId(), orderId, instantNow(), Version.NONE, restaurantId, orderStatus, orderItems);
     }
 
     public static OrderSnapshot recreateFrom(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate, Version version,
-                                             RestaurantId restaurantId, Order.Status orderStatus) {
+                                             RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
         requireNonNull(restaurantId, "restaurantId");
         requireNonNull(orderStatus, "orderStatus");
+        requireNonNull(orderItems, "orderItems");
 
-        return new OrderSnapshot(snapshotId, orderId, creationDate, version, restaurantId, orderStatus);
+        return new OrderSnapshot(snapshotId, orderId, creationDate, version, restaurantId, orderStatus, orderItems);
     }
 
     private OrderSnapshot(OrderSnapshotId snapshotId, OrderId orderId, Instant creationDate, Version version,
-                          RestaurantId restaurantId, Order.Status orderStatus) {
+                          RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
         super(snapshotId, orderId, creationDate, version);
         this.restaurantId = restaurantId;
         this.orderStatus = orderStatus;
+        this.orderItems = orderItems;
     }
 
     public static final class OrderSnapshotId extends SnapshotId {
