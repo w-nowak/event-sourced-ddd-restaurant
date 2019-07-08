@@ -2,6 +2,8 @@ package com.wnowakcraft.samples.restaurant.core.utils;
 
 import java.time.*;
 
+import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
+
 public class ApplicationClock {
 	private static Clock currentClock = getSystemDefaultClock();
 
@@ -23,12 +25,23 @@ public class ApplicationClock {
 	}
 
 	public static Clock getFixedClockFor(int year, int month, int dayOfMonth, int hour, int minute, int second) {
-		return Clock.fixed(
+		return prepareClockFor(
 			ZonedDateTime.of(
 				LocalDateTime.of(year, month, dayOfMonth, hour, minute, second),
 				ZoneId.systemDefault()
-			).toInstant(),
-			ZoneId.systemDefault()
+			).toInstant()
+		);
+	}
+
+	public static Clock getFixedClockFor(Instant instant) {
+		requireNonNull(instant, "instant");
+		return prepareClockFor(instant);
+	}
+
+	private static Clock prepareClockFor(Instant instant) {
+		return  Clock.fixed(
+				instant,
+				ZoneId.systemDefault()
 		);
 	}
 
