@@ -4,9 +4,11 @@ import com.wnowakcraft.samples.restaurant.core.domain.AbstractEvent;
 
 import java.time.Instant;
 
+import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
+
 public final class OrderCanceledEvent extends AbstractEvent<Order.Id> implements OrderEvent {
 
-    public OrderCanceledEvent restoreFrom(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
+    public static OrderCanceledEvent restoreFrom(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
         return new OrderCanceledEvent(orderId, sequenceNumber, generatedOn);
     }
 
@@ -20,6 +22,8 @@ public final class OrderCanceledEvent extends AbstractEvent<Order.Id> implements
 
     @Override
     public void applyOn(Order order) {
+        requireNonNull(order, "order");
+
         order.apply(this);
     }
 }

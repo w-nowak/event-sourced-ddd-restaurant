@@ -40,6 +40,8 @@ public final class OrderCreatedEvent extends AbstractEvent<Order.Id> implements 
 
     @Override
     public void applyOn(Order order) {
+        requireNonNull(order, "order");
+
         order.apply(this);
     }
 }

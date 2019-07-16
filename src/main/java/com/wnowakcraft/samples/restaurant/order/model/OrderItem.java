@@ -1,16 +1,13 @@
 package com.wnowakcraft.samples.restaurant.order.model;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @ToString
 @EqualsAndHashCode
 @RequiredArgsConstructor
-public class OrderItem {
-    private final int quantity;
-    private final String name;
-    private final MenuItemId menuItemId;
+public final class OrderItem {
+    @NonNull private final int quantity;
+    @NonNull private final String name;
+    @NonNull private final MenuItemId menuItemId;
 }
