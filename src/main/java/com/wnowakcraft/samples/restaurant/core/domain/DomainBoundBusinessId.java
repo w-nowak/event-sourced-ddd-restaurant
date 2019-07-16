@@ -16,6 +16,8 @@ import static java.lang.String.format;
 public abstract class DomainBoundBusinessId implements Id<String> {
     private static final String SEPARATOR = "-";
     private static final String FIRST_THREE_UUUID_GROUPS_REGEX = "\\w{8}" + SEPARATOR + "\\w{4}" + SEPARATOR + "\\w{4}";
+    public static final String STRING_ID_REGEX = "\\w+" + SEPARATOR + "\\w+" + SEPARATOR + "[A-Z]" + SEPARATOR + FIRST_THREE_UUUID_GROUPS_REGEX;
+
     private final String id;
 
     protected DomainBoundBusinessId(String domainObjectId, String domainObjectName, char domainObjectType) {

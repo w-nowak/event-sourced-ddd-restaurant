@@ -1,6 +1,7 @@
 package com.wnowakcraft.samples.restaurant.order.model;
 
 import com.wnowakcraft.samples.restaurant.core.domain.AbstractAggregate;
+import com.wnowakcraft.samples.restaurant.core.domain.Aggregate;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -43,7 +44,7 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
         return new Order(orderSnapshot, List.copyOf(events), version);
     }
 
-    private Order(Order.Id orderId, Collection<OrderEvent> orderEvents, Version version) {
+    private Order(Id orderId, Collection<OrderEvent> orderEvents, Version version) {
         super(orderId, orderEvents, version);
     }
 
@@ -105,7 +106,7 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
         private final String name;
     }
 
-    public static final class Id extends AggregateId {
+    public static final class Id extends Aggregate.Id {
         private Id() {
             super(OrderSubdomain.NAME, AGGREGATE_NAME);
         }

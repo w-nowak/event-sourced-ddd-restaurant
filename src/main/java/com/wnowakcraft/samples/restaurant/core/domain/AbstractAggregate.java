@@ -1,6 +1,7 @@
 package com.wnowakcraft.samples.restaurant.core.domain;
 
-import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.AggregateId;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -9,7 +10,9 @@ import java.util.List;
 import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 
-public abstract class AbstractAggregate<ID extends AggregateId, E extends Event, S extends Snapshot>
+@ToString
+@EqualsAndHashCode
+public abstract class AbstractAggregate<ID extends Aggregate.Id, E extends Event, S extends Snapshot>
         implements Aggregate<ID, E> {
     private final ID aggregateId;
     private final Version version;

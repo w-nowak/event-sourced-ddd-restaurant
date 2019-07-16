@@ -1,6 +1,5 @@
 package com.wnowakcraft.samples.restaurant.core.domain;
 
-import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.AggregateId;
 import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.core.domain.Event.SequenceNumber;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +9,7 @@ import java.util.Collections;
 
 import static lombok.AccessLevel.PRIVATE;
 
-public interface EventStore<E extends Event, A extends Aggregate<ID, E>, ID extends AggregateId> {
+public interface EventStore<E extends Event, A extends Aggregate<ID, E>, ID extends Aggregate.Id> {
     EventStream<E> loadAllEventsFor(ID aggregateId);
     EventStream<E> loadEventsFor(ID aggregateId, SequenceNumber startingFromSequenceNumber);
     EventStream<E> loadEventsFor(ID aggregateId, Version whichFollowsAggregateVersion);

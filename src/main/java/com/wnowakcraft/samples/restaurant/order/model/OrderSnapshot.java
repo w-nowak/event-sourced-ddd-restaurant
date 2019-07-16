@@ -2,6 +2,7 @@ package com.wnowakcraft.samples.restaurant.order.model;
 
 import com.wnowakcraft.samples.restaurant.core.domain.AbstractSnapshot;
 import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.Version;
+import com.wnowakcraft.samples.restaurant.core.domain.Snapshot;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -13,9 +14,9 @@ import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 import static com.wnowakcraft.samples.restaurant.core.utils.ApplicationTime.instantNow;
 
 @Getter
-@ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Order.Id> {
+@ToString(callSuper = true)
+public final class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Order.Id> {
     private final RestaurantId restaurantId;
     private final Order.Status orderStatus;
     private final Collection<OrderItem> orderItems;
@@ -28,7 +29,7 @@ public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Order.Id> 
         return new OrderSnapshot(OrderSnapshot.Id.newId(), orderId, instantNow(), Version.NONE, restaurantId, orderStatus, orderItems);
     }
 
-    public static OrderSnapshot recreateFrom(OrderSnapshot.Id snapshotId, Order.Id orderId, Instant creationDate, Version version,
+    public static OrderSnapshot recreateFrom(Id snapshotId, Order.Id orderId, Instant creationDate, Version version,
                                              RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
         requireNonNull(restaurantId, "restaurantId");
         requireNonNull(orderStatus, "orderStatus");
@@ -37,7 +38,7 @@ public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Order.Id> 
         return new OrderSnapshot(snapshotId, orderId, creationDate, version, restaurantId, orderStatus, orderItems);
     }
 
-    private OrderSnapshot(OrderSnapshot.Id snapshotId, Order.Id orderId, Instant creationDate, Version version,
+    private OrderSnapshot(Id snapshotId, Order.Id orderId, Instant creationDate, Version version,
                           RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
         super(snapshotId, orderId, creationDate, version);
         this.restaurantId = restaurantId;
@@ -45,7 +46,7 @@ public class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Order.Id> 
         this.orderItems = orderItems;
     }
 
-    public static final class Id extends SnapshotId {
+    public static final class Id extends Snapshot.Id {
 
         private static Id newId() {
             return new Id(OrderSubdomain.NAME, Order.AGGREGATE_NAME);

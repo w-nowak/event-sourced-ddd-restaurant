@@ -2,31 +2,35 @@ package com.wnowakcraft.samples.restaurant.core.domain;
 
 import com.wnowakcraft.preconditions.Preconditions;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.Collection;
 
 import static lombok.AccessLevel.PRIVATE;
 
-public interface Aggregate<ID extends Aggregate.AggregateId, E extends Event> {
+public interface Aggregate<ID extends Aggregate.Id, E extends Event> {
     ID getId();
     Collection<E> getChanges();
     Version getVersion();
 
-    abstract class AggregateId extends DomainBoundBusinessId {
-        private static final char AGGREGATE_TYPE_SYMBOL = 'A';
+    abstract class Id extends DomainBoundBusinessId {
+        private static final char TYPE_SYMBOL = 'A';
 
 
-        protected AggregateId(String domainName, String domainObjectName) {
-            super(domainName, domainObjectName, AGGREGATE_TYPE_SYMBOL);
+        protected Id(String domainName, String domainObjectName) {
+            super(domainName, domainObjectName, TYPE_SYMBOL);
         }
 
-        protected AggregateId(String aggregateId, String domainName, String domainObjectName) {
-            super(aggregateId, domainName, domainObjectName, AGGREGATE_TYPE_SYMBOL);
+        protected Id(String aggregateId, String domainName, String domainObjectName) {
+            super(aggregateId, domainName, domainObjectName, TYPE_SYMBOL);
         }
     }
 
     @Getter
+    @ToString
+    @EqualsAndHashCode
     @AllArgsConstructor(access = PRIVATE)
     final class Version {
         public final static Version NONE = new Version(0);

@@ -1,6 +1,5 @@
 package com.wnowakcraft.samples.restaurant.core.domain;
 
-import com.wnowakcraft.samples.restaurant.core.domain.Aggregate.AggregateId;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
@@ -8,7 +7,7 @@ import java.time.Instant;
 import static com.wnowakcraft.preconditions.Preconditions.requireThat;
 import static lombok.AccessLevel.PRIVATE;
 
-public interface Event<ID extends AggregateId> {
+public interface Event<ID extends Aggregate.Id> {
     ID getConcernedAggregateId();
     SequenceNumber getSequenceNumber();
     Instant getGeneratedOn();
