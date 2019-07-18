@@ -47,4 +47,11 @@ public class OrderModelTestData {
 
     public static final Collection<OrderItem> THREE_ORDER_ITEMS =
             List.of(ORDER_ITEM_1.ORDER_ITEM, ORDER_ITEM_2.ORDER_ITEM, ORDER_ITEM_3.ORDER_ITEM);
+
+    public static final Order ORDER = Order.newOrder(CUSTOMER_ID, RESTAURANT_ID, THREE_ORDER_ITEMS);
+    public static final OrderCreatedEvent ORDER_CREATED_EVENT =
+            new OrderCreatedEvent(ORDER_ID, CUSTOMER_ID, RESTAURANT_ID, THREE_ORDER_ITEMS);
+    public static final OrderSnapshot ORDER_SNAPSHOT =
+            OrderSnapshot.recreateFrom(ORDER_SNAPSHOT_ID, ORDER_ID, CREATION_DATE, AGGREGATE_VERSION,
+                    CUSTOMER_ID, RESTAURANT_ID,Order.Status.APPROVED, THREE_ORDER_ITEMS);
 }

@@ -6,61 +6,62 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 
-import static com.wnowakcraft.preconditions.Preconditions.*;
+import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 import static lombok.AccessLevel.PRIVATE;
 
 @Getter
 public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot> {
     static final String AGGREGATE_NAME = "ORDER";
 
+    private CustomerId customerId;
     private RestaurantId restaurantId;
     private Status status;
-    private Collection<OrderItem> orderItems = new LinkedList<>();
+    private Collection<OrderItem> orderItems;
 
     public static Order newOrder(CustomerId customerId, RestaurantId restaurantId, Collection<OrderItem> orderItems) {
-        final var orderId = Order.Id.newId();
-        final var orderCreatedEvent = new OrderCreatedEvent(orderId, customerId, restaurantId, orderItems);
+        final var orderCreatedEvent = new OrderCreatedEvent(Order.Id.newId(), customerId, restaurantId, orderItems);
 
-        final Order order = new Order(orderId, List.of(orderCreatedEvent), Version.NONE);
-        order.changes.add(orderCreatedEvent);
+        final Order order = new Order(orderCreatedEvent);
 
         return order;
     }
 
-    public static Order restoreFrom(Collection<OrderEvent> events, Version version) {
-        requireNonEmpty(events, "events");
-
-        final OrderEvent firstOrderEvent = events.iterator().next();
-        requireThat(firstOrderEvent instanceof OrderCreatedEvent,
-                "Invalid event stream. Fist Order event needs to be OrderCreatedEvent");
-
-        return new Order(firstOrderEvent.getConcernedAggregateId(), List.copyOf(events), version);
+    public static Order restoreFrom(Collection<? extends OrderEvent> events, Version version) {
+        return new Order(events, version);
     }
 
-    public static Order restoreFrom(OrderSnapshot orderSnapshot, Collection<OrderEvent> events, Version version) {
-        return new Order(orderSnapshot, List.copyOf(events), version);
+    public static Order restoreFrom(OrderSnapshot orderSnapshot, Collection<? extends OrderEvent> events, Version version) {
+        return new Order(orderSnapshot, events, version);
     }
 
-    private Order(Id orderId, Collection<OrderEvent> orderEvents, Version version) {
-        super(orderId, orderEvents, version);
+    private Order(OrderCreatedEvent orderCreatedEvent) {
+        super(orderCreatedEvent);
     }
 
-    private Order(OrderSnapshot orderSnapshot, Collection<OrderEvent> orderEvents, Version version) {
-        super(orderSnapshot.getAggregateId(), orderSnapshot, orderEvents, version);
+    private Order(Collection<? extends OrderEvent> orderEvents, Version version) {
+        super(orderEvents, OrderCreatedEvent.class, version);
+    }
+
+    private Order(OrderSnapshot orderSnapshot, Collection<? extends OrderEvent> orderEvents, Version version) {
+        super(orderSnapshot, orderEvents, version);
     }
 
     @Override
     protected void applyAll(Collection<OrderEvent> orderEvents) {
+        requireNonNull(orderEvents, "orderEvents");
+
         orderEvents.forEach(event -> event.applyOn(this));
     }
 
     @Override
     protected void restoreFrom(OrderSnapshot orderSnapshot) {
+        requireNonNull(orderSnapshot, "orderSnapshot");
+
+        this.customerId = orderSnapshot.getCustomerId();
         this.restaurantId = orderSnapshot.getRestaurantId();
         this.status = orderSnapshot.getOrderStatus();
+        this.orderItems = orderSnapshot.getOrderItems();
     }
 
     public void cancel() {
@@ -76,20 +77,27 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
     }
 
     public OrderSnapshot takeSnapshot() {
-        return OrderSnapshot.newSnapshot(getId(), restaurantId, status, orderItems);
+        return OrderSnapshot.newSnapshot(getId(), customerId, restaurantId, status, orderItems);
     }
 
     void apply(OrderCreatedEvent orderCreatedEvent) {
+        requireNonNull(orderCreatedEvent, "orderCreatedEvent");
+
+        this.customerId = orderCreatedEvent.getCustomerId();
         this.restaurantId = orderCreatedEvent.getRestaurantId();
         this.orderItems = orderCreatedEvent.getOrderItems();
         this.status = Status.APPROVAL_PENDING;
     }
 
     void apply(OrderApprovedEvent orderApprovedEvent) {
+        requireNonNull(orderApprovedEvent, "orderApprovedEvent");
+
         this.status = Status.APPROVED;
     }
 
     void apply(OrderCanceledEvent orderCanceledEvent) {
+        requireNonNull(orderCanceledEvent, "orderCanceledEvent");
+
         this.status = Status.CANCELLED;
     }
 

@@ -31,9 +31,10 @@ class OrderSnapshotTest {
 
     @Test
     void createsNewOrderSnapshot() {
-        var orderSnapshot = OrderSnapshot.newSnapshot(ORDER_ID, RESTAURANT_ID, Order.Status.APPROVED, THREE_ORDER_ITEMS);
+        var orderSnapshot = OrderSnapshot.newSnapshot(ORDER_ID, CUSTOMER_ID, RESTAURANT_ID, Order.Status.APPROVED, THREE_ORDER_ITEMS);
 
         assertThat(orderSnapshot.getAggregateId()).isEqualTo(ORDER_ID);
+        assertThat(orderSnapshot.getCustomerId()).isEqualTo(CUSTOMER_ID);
         assertThat(orderSnapshot.getRestaurantId()).isEqualTo(RESTAURANT_ID);
         assertThat(orderSnapshot.getOrderStatus()).isEqualTo(Order.Status.APPROVED);
         assertThat(orderSnapshot.getOrderItems()).isEqualTo(THREE_ORDER_ITEMS);
@@ -47,11 +48,12 @@ class OrderSnapshotTest {
     @Test
     void recreatesOrderSnapshotFromData() {
         var orderSnapshot = OrderSnapshot.recreateFrom(
-                ORDER_SNAPSHOT_ID, ORDER_ID, CREATION_DATE, AGGREGATE_VERSION, RESTAURANT_ID,
-                Order.Status.CANCELLED, THREE_ORDER_ITEMS
+                ORDER_SNAPSHOT_ID, ORDER_ID, CREATION_DATE, AGGREGATE_VERSION, CUSTOMER_ID,
+                RESTAURANT_ID, Order.Status.CANCELLED, THREE_ORDER_ITEMS
         );
 
         assertThat(orderSnapshot.getAggregateId()).isEqualTo(ORDER_ID);
+        assertThat(orderSnapshot.getCustomerId()).isEqualTo(CUSTOMER_ID);
         assertThat(orderSnapshot.getRestaurantId()).isEqualTo(RESTAURANT_ID);
         assertThat(orderSnapshot.getOrderStatus()).isEqualTo(Order.Status.CANCELLED);
         assertThat(orderSnapshot.getOrderItems()).isEqualTo(THREE_ORDER_ITEMS);
@@ -72,6 +74,7 @@ class OrderSnapshotTest {
                 .setDefault(Order.Id.class, ORDER_ID)
                 .setDefault(OrderSnapshot.Id.class, ORDER_SNAPSHOT_ID)
                 .setDefault(RestaurantId.class, RESTAURANT_ID)
+                .setDefault(CustomerId.class, CUSTOMER_ID)
                 .testAllPublicStaticMethods(OrderSnapshot.class);
     }
 }

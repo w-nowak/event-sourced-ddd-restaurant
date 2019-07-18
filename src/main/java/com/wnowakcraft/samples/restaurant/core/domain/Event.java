@@ -1,6 +1,8 @@
 package com.wnowakcraft.samples.restaurant.core.domain;
 
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 import java.time.Instant;
 
@@ -12,6 +14,8 @@ public interface Event<ID extends Aggregate.Id> {
     SequenceNumber getSequenceNumber();
     Instant getGeneratedOn();
 
+    @ToString
+    @EqualsAndHashCode
     @RequiredArgsConstructor(access = PRIVATE)
     class SequenceNumber {
         public static SequenceNumber NOT_ASSIGNED = new SequenceNumber(-1);

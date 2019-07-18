@@ -17,33 +17,31 @@ import static com.wnowakcraft.samples.restaurant.core.utils.ApplicationTime.inst
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public final class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Order.Id> {
+    private final CustomerId customerId;
     private final RestaurantId restaurantId;
     private final Order.Status orderStatus;
     private final Collection<OrderItem> orderItems;
 
-    static OrderSnapshot newSnapshot(Order.Id orderId, RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
-        requireNonNull(restaurantId, "restaurantId");
-        requireNonNull(orderStatus, "orderStatus");
-        requireNonNull(orderItems, "orderItems");
-
-        return new OrderSnapshot(OrderSnapshot.Id.newId(), orderId, instantNow(), Version.NONE, restaurantId, orderStatus, orderItems);
+    static OrderSnapshot newSnapshot(Order.Id orderId, CustomerId customerId, RestaurantId restaurantId,
+                                     Order.Status orderStatus, Collection<OrderItem> orderItems) {
+        return new OrderSnapshot(
+                OrderSnapshot.Id.newId(), orderId, instantNow(), Version.NONE,
+                customerId, restaurantId, orderStatus, orderItems
+        );
     }
 
-    public static OrderSnapshot recreateFrom(Id snapshotId, Order.Id orderId, Instant creationDate, Version version,
+    public static OrderSnapshot recreateFrom(Id snapshotId, Order.Id orderId, Instant creationDate, Version version, CustomerId customerId,
                                              RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
-        requireNonNull(restaurantId, "restaurantId");
-        requireNonNull(orderStatus, "orderStatus");
-        requireNonNull(orderItems, "orderItems");
-
-        return new OrderSnapshot(snapshotId, orderId, creationDate, version, restaurantId, orderStatus, orderItems);
+        return new OrderSnapshot(snapshotId, orderId, creationDate, version, customerId, restaurantId, orderStatus, orderItems);
     }
 
-    private OrderSnapshot(Id snapshotId, Order.Id orderId, Instant creationDate, Version version,
+    private OrderSnapshot(Id snapshotId, Order.Id orderId, Instant creationDate, Version version, CustomerId customerId,
                           RestaurantId restaurantId, Order.Status orderStatus, Collection<OrderItem> orderItems) {
         super(snapshotId, orderId, creationDate, version);
-        this.restaurantId = restaurantId;
-        this.orderStatus = orderStatus;
-        this.orderItems = orderItems;
+        this.customerId = requireNonNull(customerId, "customerId");
+        this.restaurantId = requireNonNull(restaurantId, "restaurantId");;
+        this.orderStatus = requireNonNull(orderStatus, "orderStatus");;
+        this.orderItems = requireNonNull(orderItems, "orderItems");
     }
 
     public static final class Id extends Snapshot.Id {
