@@ -81,8 +81,6 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
     }
 
     void apply(OrderCreatedEvent orderCreatedEvent) {
-        requireNonNull(orderCreatedEvent, "orderCreatedEvent");
-
         this.customerId = orderCreatedEvent.getCustomerId();
         this.restaurantId = orderCreatedEvent.getRestaurantId();
         this.orderItems = orderCreatedEvent.getOrderItems();
@@ -90,14 +88,10 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
     }
 
     void apply(OrderApprovedEvent orderApprovedEvent) {
-        requireNonNull(orderApprovedEvent, "orderApprovedEvent");
-
         this.status = Status.APPROVED;
     }
 
     void apply(OrderCanceledEvent orderCanceledEvent) {
-        requireNonNull(orderCanceledEvent, "orderCanceledEvent");
-
         this.status = Status.CANCELLED;
     }
 
