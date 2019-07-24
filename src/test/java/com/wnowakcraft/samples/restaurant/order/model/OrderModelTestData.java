@@ -49,8 +49,13 @@ public class OrderModelTestData {
             List.of(ORDER_ITEM_1.ORDER_ITEM, ORDER_ITEM_2.ORDER_ITEM, ORDER_ITEM_3.ORDER_ITEM);
 
     public static final Order ORDER = Order.newOrder(CUSTOMER_ID, RESTAURANT_ID, THREE_ORDER_ITEMS);
+    public static final Order.Version ORDER_VERSION = Aggregate.Version.of(10);
     public static final OrderCreatedEvent ORDER_CREATED_EVENT =
             new OrderCreatedEvent(ORDER_ID, CUSTOMER_ID, RESTAURANT_ID, THREE_ORDER_ITEMS);
+    public static final OrderCancelStartedEvent ORDER_CANCEL_STARTED_EVENT = new OrderCancelStartedEvent(ORDER_ID);
+    public static final OrderCancelledEvent ORDER_CANCELLED_EVENT = new OrderCancelledEvent(ORDER_ID);
+    public static final OrderApprovedEvent ORDER_APPROVED_EVENT = new OrderApprovedEvent(ORDER_ID);
+    public static final OrderRejectedEvent ORDER_REJECTED_EVENT = new OrderRejectedEvent(ORDER_ID);
     public static final OrderSnapshot ORDER_SNAPSHOT =
             OrderSnapshot.recreateFrom(ORDER_SNAPSHOT_ID, ORDER_ID, CREATION_DATE, AGGREGATE_VERSION,
                     CUSTOMER_ID, RESTAURANT_ID,Order.Status.APPROVED, THREE_ORDER_ITEMS);

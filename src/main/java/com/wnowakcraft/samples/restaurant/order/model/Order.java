@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import java.util.Collection;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
+import static com.wnowakcraft.preconditions.Preconditions.requireThat;
+import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
 
 @Getter
@@ -21,10 +23,7 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
 
     public static Order newOrder(CustomerId customerId, RestaurantId restaurantId, Collection<OrderItem> orderItems) {
         final var orderCreatedEvent = new OrderCreatedEvent(Order.Id.newId(), customerId, restaurantId, orderItems);
-
-        final Order order = new Order(orderCreatedEvent);
-
-        return order;
+        return new Order(orderCreatedEvent);
     }
 
     public static Order restoreFrom(Collection<? extends OrderEvent> events, Version version) {
@@ -64,13 +63,59 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
         this.orderItems = orderSnapshot.getOrderItems();
     }
 
+    public void reject() {
+        if(this.status == Status.REJECTED) {
+            return;
+        }
+
+        requireThat(this.status == Status.APPROVAL_PENDING,
+                () -> new IllegalStateChangeException(this, this.status, Status.REJECTED,
+                        format("Order cannot be rejected when in %s status", this.status)));
+
+        final var orderRejectedEvent = new OrderRejectedEvent(getId());
+        changes.add(orderRejectedEvent);
+        apply(orderRejectedEvent);
+    }
+
     public void cancel() {
-        final var orderCanceledEvent = new OrderCanceledEvent(getId());
+        if(this.status == Status.CANCELLED || this.status == Status.CANCEL_PENDING) {
+            return;
+        }
+
+        requireThat(this.status == Status.APPROVED,
+                () -> new IllegalStateChangeException(this, this.status, Status.CANCEL_PENDING,
+                        "Order cannot be cancelled as it hasn't been approved yet"));
+
+        final var orderCancelStartededEvent = new OrderCancelStartedEvent(getId());
+        changes.add(orderCancelStartededEvent);
+        apply(orderCancelStartededEvent);
+    }
+
+    public void cancelConfirmed() {
+        if(this.status == Status.CANCELLED) {
+            return;
+        }
+
+        requireThat(this.status == Status.CANCEL_PENDING,
+                () -> new IllegalStateChangeException(this, this.status, Status.CANCELLED,
+                        format("Order cancellation status cannot be confirmed when in %s status", this.status))
+        );
+
+        final var orderCanceledEvent = new OrderCancelledEvent(getId());
         changes.add(orderCanceledEvent);
         apply(orderCanceledEvent);
     }
 
     public void approve() {
+        if(this.status == Status.APPROVED) {
+            return;
+        }
+
+        requireThat(this.status == Status.APPROVAL_PENDING,
+                () -> new IllegalStateChangeException(this, this.status, Status.APPROVED,
+                        format("Order cannot be approved when in %s status", this.status))
+        );
+
         final var  orderApprovedEvent = new OrderApprovedEvent(getId());
         changes.add(orderApprovedEvent);
         apply(orderApprovedEvent);
@@ -91,14 +136,21 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
         this.status = Status.APPROVED;
     }
 
-    void apply(OrderCanceledEvent orderCanceledEvent) {
+    void apply(OrderCancelStartedEvent orderCancelStartedEvent) {
+        this.status = Status.CANCEL_PENDING;
+    }
+
+    void apply(OrderCancelledEvent orderCancelledEvent) {
         this.status = Status.CANCELLED;
     }
 
+    void apply(OrderRejectedEvent orderRejectedEvent) {
+        this.status = Status.REJECTED;
+    }
 
     @Getter
     @RequiredArgsConstructor(access = PRIVATE)
-    public enum Status {
+    public enum Status implements State {
         APPROVAL_PENDING("APPROVAL_PENDING"),
         APPROVED("APPROVED"),
         REJECTED("REJECTED"),

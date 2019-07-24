@@ -8,6 +8,8 @@ import lombok.ToString;
 
 import java.util.Collection;
 
+import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
+import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
 
 public interface Aggregate<ID extends Aggregate.Id, E extends Event> {
@@ -41,6 +43,26 @@ public interface Aggregate<ID extends Aggregate.Id, E extends Event> {
             Preconditions.requireThat(number > 0, "The version number needs to be positive integer");
 
             return new Version(number);
+        }
+    }
+
+    interface State {
+        String name();
+    }
+
+    @Getter
+    class IllegalStateChangeException extends RuntimeException {
+        private final State fromState;
+        private final State toState;
+        private final String message;
+
+        public IllegalStateChangeException(Aggregate aggregate, State fromState, State toState, String description) {
+            requireNonNull(aggregate, "aggregate");
+            this.fromState = requireNonNull(fromState, "fromState");
+            this.toState = requireNonNull(toState, "toState");
+            requireNonNull(description, "description");
+            this.message = format("It's not allowed to change state from %s to %s for %s. %s",
+                    fromState.name(), toState.name(), aggregate.getClass().getSimpleName(), description);
         }
     }
 }

@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 
-class OrderCanceledEventTest {
+class OrderCancelledEventTest {
     private static final Instant CURRENT_INSTANT = Instant.now();
 
     @BeforeEach
@@ -32,7 +32,7 @@ class OrderCanceledEventTest {
 
     @Test
     void restoresOrderCanceledEventFromData() {
-        var orderCanceledEvent = OrderCanceledEvent.restoreFrom(ORDER_ID, SEQUENCE_NUMBER, CREATION_DATE);
+        var orderCanceledEvent = OrderCancelledEvent.restoreFrom(ORDER_ID, SEQUENCE_NUMBER, CREATION_DATE);
 
         assertThat(orderCanceledEvent).isNotNull();
         assertThat(orderCanceledEvent.getConcernedAggregateId()).isEqualTo(ORDER_ID);
@@ -43,7 +43,7 @@ class OrderCanceledEventTest {
 
     @Test
     void createsNewOrderCanceledEvent() {
-        var orderCanceledEvent = new OrderCanceledEvent(ORDER_ID);
+        var orderCanceledEvent = new OrderCancelledEvent(ORDER_ID);
 
         assertThat(orderCanceledEvent).isNotNull();
         assertThat(orderCanceledEvent.getConcernedAggregateId()).isEqualTo(ORDER_ID);
@@ -54,7 +54,7 @@ class OrderCanceledEventTest {
 
     @Test
     void applyOn_shouldDelegateToApplyMethodOfPassedOrder() {
-        final var orderCanceledEvent = new OrderCanceledEvent(ORDER_ID);
+        final var orderCanceledEvent = new OrderCancelledEvent(ORDER_ID);
         final var order = mock(Order.class);
 
         orderCanceledEvent.applyOn(order);
@@ -65,21 +65,21 @@ class OrderCanceledEventTest {
     @Test
     void verifiesEqualsAndHashCodeContract() {
         EqualsVerifier
-                .forClass(OrderCanceledEvent.class)
+                .forClass(OrderCancelledEvent.class)
                 .withPrefabValues(SequenceNumber.class, SequenceNumber.of(15), SequenceNumber.of(5))
                 .verify();
     }
 
     @Test
     void verifiesNullPointerContractOfPublicInstanceMethods() {
-        new NullPointerTester().testAllPublicInstanceMethods(new OrderCanceledEvent(ORDER_ID));
+        new NullPointerTester().testAllPublicInstanceMethods(new OrderCancelledEvent(ORDER_ID));
     }
 
     @Test
     void verifiesNullPointerContractOfPublicConstructors() {
         new NullPointerTester()
                 .setDefault(Order.Id.class, ORDER_ID)
-                .testAllPublicConstructors(OrderCanceledEvent.class);
+                .testAllPublicConstructors(OrderCancelledEvent.class);
     }
 
     @Test
@@ -87,6 +87,6 @@ class OrderCanceledEventTest {
         new NullPointerTester()
                 .setDefault(Order.Id.class, ORDER_ID)
                 .setDefault(SequenceNumber.class, SEQUENCE_NUMBER)
-                .testAllPublicStaticMethods(OrderCanceledEvent.class);
+                .testAllPublicStaticMethods(OrderCancelledEvent.class);
     }
 }

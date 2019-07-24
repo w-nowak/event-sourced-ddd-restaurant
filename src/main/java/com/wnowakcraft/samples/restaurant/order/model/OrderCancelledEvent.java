@@ -6,17 +6,17 @@ import java.time.Instant;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 
-public final class OrderCanceledEvent extends AbstractEvent<Order.Id> implements OrderEvent {
+public final class OrderCancelledEvent extends AbstractEvent<Order.Id> implements OrderEvent {
 
-    public static OrderCanceledEvent restoreFrom(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
-        return new OrderCanceledEvent(orderId, sequenceNumber, generatedOn);
+    public static OrderCancelledEvent restoreFrom(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
+        return new OrderCancelledEvent(orderId, sequenceNumber, generatedOn);
     }
 
-    public OrderCanceledEvent(Order.Id orderId) {
+    public OrderCancelledEvent(Order.Id orderId) {
         super(orderId);
     }
 
-    private OrderCanceledEvent(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
+    private OrderCancelledEvent(Order.Id orderId, SequenceNumber sequenceNumber, Instant generatedOn) {
         super(orderId, sequenceNumber, generatedOn);
     }
 
