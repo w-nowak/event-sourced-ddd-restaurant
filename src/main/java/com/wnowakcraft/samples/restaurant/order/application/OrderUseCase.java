@@ -1,9 +1,9 @@
 package com.wnowakcraft.samples.restaurant.order.application;
 
-import com.wnowakcraft.samples.restaurant.core.domain.EventStore;
-import com.wnowakcraft.samples.restaurant.core.domain.EventStore.EventStream;
-import com.wnowakcraft.samples.restaurant.core.domain.SnapshotRepository;
-import com.wnowakcraft.samples.restaurant.order.model.*;
+import com.wnowakcraft.samples.restaurant.core.domain.model.EventStore;
+import com.wnowakcraft.samples.restaurant.core.domain.model.EventStore.EventStream;
+import com.wnowakcraft.samples.restaurant.core.domain.model.SnapshotRepository;
+import com.wnowakcraft.samples.restaurant.order.domain.model.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
