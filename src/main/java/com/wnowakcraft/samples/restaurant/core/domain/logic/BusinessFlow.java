@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
@@ -17,135 +19,118 @@ import static lombok.AccessLevel.PRIVATE;
 
 @Getter
 @RequiredArgsConstructor
-public class BusinessFlow<E extends Event> {
+public class BusinessFlow<E extends Event, S> {
     private final Class<E> flowTriggerEventClass;
-    private final Function<? super E, ? extends Command> flowTriggerCompensation;
+    private final Function<S, ? extends Command> flowTriggerCompensationCommandProvider;
     private final List<BusinessFlowStep> businessFlowSteps;
+    private final Supplier<S> flowStateHolderSupplier;
 
-    public static <E extends Event> ThenSendWithCompensation<E> startWith(Class<E> event) {
+    public static <E extends Event, S> ThenSendWithCompensation<E, S> startWith(Class<E> event, Supplier<S> flowStateHolderSupplier) {
         requireNonNull(event, "event");
 
-        return new BusinessFlowBuilder<>(event);
+        return new BusinessFlowBuilder<>(event, flowStateHolderSupplier);
     }
 
-    public static class ResponseMapping extends HashMap<Class<? extends Message>, Function<Message, ? extends Command>>{ }
+    public static class ResponseMapping<S> extends HashMap<Class<? extends Message>, BiConsumer<Message, S>>{ }
 
     @Getter
     @RequiredArgsConstructor(access = PRIVATE)
-    public static class BusinessFlowStep<E extends Event, C extends Command>  {
-        private final Function<? super E, ? extends C> stepCommandFnProvider;
-        private final ResponseMapping responseMapping;
-        private final Function<? super E, ? extends C> compensatingCommandFnProvider;
+    public static class BusinessFlowStep<S>  {
+        private final Function<S, ? extends Command> stepCommandProvider;
+        private final ResponseMapping<S> responseMapping;
+        private final Function<S, ? extends Command> compensatingCommandFnProvider;
     }
 
     @RequiredArgsConstructor(access = PRIVATE)
-    private static class BusinessFlowBuilder<E extends Event> implements ThenSend<E>, ThenSendWithCompensation<E>, ThenSendResultCommand<E>, On<E> {
+    private static class BusinessFlowBuilder<E extends Event, S> implements ThenSend<E, S>, ThenSendWithCompensation<E, S>, On<E, S> {
         private final Class<E> flowTriggerEventClass;
         private final List<BusinessFlowStep> businessFlowSteps = new LinkedList<>();
-        private Function<? super E, ? extends Command> flowTriggerCompensation;
-        private Function<? super E, ? extends Command> currentCommandFnProvider;
+        private final Supplier<S> flowStateHolderSupplier;
+        private Function<S, ? extends Command> flowTriggerCompensationCommandProvider;
+        private Function<S, ? extends Command> currentCommandProvider;
 
         @Override
-        public <C extends Command> On<E> thenSend(Function<? super E, C> nextCommandFnProvider) {
-            this.currentCommandFnProvider = nextCommandFnProvider;
+        public <C extends Command> On<E, S> thenSend(Function<S, C> nextCommandProvider) {
+            this.currentCommandProvider = nextCommandProvider;
             return this;
         }
 
         @Override
-        public <C extends Command> ThenSend<E> compensateBy(Function<? super E, C> flowTriggerCompensation) {
-            this.flowTriggerCompensation = flowTriggerCompensation;
+        public <C extends Command> ThenSend<E, S> compensateBy(Function<S, ? extends C> flowTriggerCompensationCommandProvider) {
+            this.flowTriggerCompensationCommandProvider = flowTriggerCompensationCommandProvider;
             return this;
         }
 
         @Override
-        public On<E> thenSendResultCommand() {
-            this.currentCommandFnProvider = null;
-            return this;
+        public <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer) {
+            return new BusinessFlowStepBuilder();
         }
 
-        @Override
-        public <M extends Message, C extends Command> OnResponse<E, C> on(Class<M> message, Function<? super M, C> generateCommand) {
-            return new BusinessFlowStepBuilder<>();
-        }
-
-        private BusinessFlow<E> build() {
-            return new BusinessFlow<>(flowTriggerEventClass, flowTriggerCompensation, businessFlowSteps);
+        private BusinessFlow<E, S> build() {
+            return new BusinessFlow<>(flowTriggerEventClass, flowTriggerCompensationCommandProvider, businessFlowSteps, flowStateHolderSupplier);
         }
 
         @RequiredArgsConstructor
-        private class BusinessFlowStepBuilder<C extends Command> implements OnResponse<E, C> {
-            private ResponseMapping responseMapping = new ResponseMapping();
-            private Function<? super E, ? extends C> compensatingCommandFnProvider;
+        private class BusinessFlowStepBuilder implements OnResponse<E, S> {
+            private ResponseMapping<S> responseMapping = new ResponseMapping<>();
+            private Function<S, ? extends Command> compensatingCommandProvider;
 
             @Override
-            public <M extends Message> OnResponse<E, C> on(Class<M> message, Function<? super M, C> generateCommand) {
-                this.responseMapping.put(message, (Function<Message, C>)generateCommand);
+            public <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer) {
+                this.responseMapping.put(message, (BiConsumer<Message, S>)responseMessageConsumer);
                 return this;
             }
 
             @Override
-            public OnResponse<E, C> compensateBy(Function<? super E, ? extends C> compensationFnProvider) {
-                this.compensatingCommandFnProvider = compensationFnProvider;
+            public <C extends Command> OnResponse<E, S> compensateBy(Function<S, ? extends C> compensatingCommandProvider) {
+                this.compensatingCommandProvider = compensatingCommandProvider;
                 return this;
             }
 
             @Override
-            public BusinessFlow<E> done() {
+            public BusinessFlow<E, S> done() {
                 return build();
             }
 
             @Override
-            public <C extends Command> On<E> thenSend(Function<? super E, C> nextCommandFnProvider) {
+            public <C extends Command> On<E, S> thenSend(Function<S, C> nextCommandProvider) {
                 businessFlowSteps.add(
-                        new BusinessFlowStep<>(currentCommandFnProvider, this.responseMapping, compensatingCommandFnProvider)
+                        new BusinessFlowStep<>(currentCommandProvider, this.responseMapping, this.compensatingCommandProvider)
                 );
-                return BusinessFlowBuilder.this.thenSend(nextCommandFnProvider);
-            }
-
-            @Override
-            public On<E> thenSendResultCommand() {
-                businessFlowSteps.add(
-                        new BusinessFlowStep<>(currentCommandFnProvider, this.responseMapping, compensatingCommandFnProvider)
-                );
-                return BusinessFlowBuilder.this.thenSendResultCommand();
+                return BusinessFlowBuilder.this.thenSend(nextCommandProvider);
             }
         }
 
 
     }
 
-    public interface ThenSend<E extends Event> {
-        <C extends Command> On<E> thenSend(Function<? super E, C> nextCommand);
+    public interface ThenSend<E extends Event, S> {
+        <C extends Command> On<E, S> thenSend(Function<S, C> nextCommandProvider);
     }
 
-    public interface ThenSendWithCompensation<E extends Event> extends ThenSend<E> {
-        <C extends Command> ThenSend<E> compensateBy(Function<? super E, C> nextCommandSupplier);
+    public interface ThenSendWithCompensation<E extends Event, S> extends ThenSend<E, S> {
+        <C extends Command> ThenSend<E, S> compensateBy(Function<S, ? extends C> compensatingCommandProvider);
     }
 
-    public interface ThenSendResultCommand<E extends Event> extends ThenSend<E> {
-        On<E> thenSendResultCommand();
-    }
-
-    private static class MarkerFunction<C extends Command> implements Function<Message, C> {
+    private static class MarkerConsumer<S> implements BiConsumer<Message, S> {
         @Override
-        public C apply(Message message) {
-            requireStateThat(false, "This function is a marker function so must not be invoked");
-            return null;
+        public void accept(Message message, S stateHolder) {
+            requireStateThat(false, "This is just a marker consumer so must not be invoked");
         }
     }
-    private static class MarkerSuccessFunction<C extends Command> extends MarkerFunction<C> { }
-    private static class MarkerFailureWithCompensateFunction<C extends Command> extends MarkerFunction<C> { }
-    private static class MarkerFailureWithRetryFunction<C extends Command> extends MarkerFunction<C> { }
-    public interface OnResponse<E extends  Event, C extends Command> extends ThenSendResultCommand<E> {
-        static <C extends Command> Function<Message, C> success() { return new MarkerSuccessFunction<C>(); };
-        static <C extends Command> Function<Message, C> failureWithCompensation() { return  new MarkerFailureWithCompensateFunction<>(); };
-        static <C extends Command> Function<Message, C> failureWithRetry() { return  new MarkerFailureWithRetryFunction<>(); };
-        <M extends Message> OnResponse<E, C> on(Class<M> message, Function<? super M, C> generateCommand);
-        OnResponse<E, C> compensateBy(Function<? super E, ? extends C> compensationFnProvider);
-        BusinessFlow<E> done();
+    private static class MarkerSuccessConsumer<S> extends MarkerConsumer<S> { }
+    private static class MarkerFailureWithCompensateConsumer<S> extends MarkerConsumer<S> { }
+    private static class MarkerFailureWithRetryConsumer<S> extends MarkerConsumer<S> { }
+    public interface OnResponse<E extends  Event, S> extends ThenSend<E, S> {
+        static <S> MarkerConsumer<S> success() { return new MarkerSuccessConsumer<>(); };
+        static <S> MarkerConsumer<S> failureWithCompensation() { return  new MarkerFailureWithCompensateConsumer<>(); };
+        static <S> MarkerConsumer<S> failureWithRetry() { return  new MarkerFailureWithRetryConsumer<>(); };
+        <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer);
+        <C extends Command> OnResponse<E, S> compensateBy(Function<S, ? extends C> compensatingCommandProvider);
+        BusinessFlow<E, S> done();
     }
 
-    public interface On<E extends Event> {
-        <M extends Message, C extends Command> OnResponse<E, C> on(Class<M> message, Function<? super M, C> generateCommand);
+    public interface On<E extends Event, S> {
+        <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer);
     }
 }
