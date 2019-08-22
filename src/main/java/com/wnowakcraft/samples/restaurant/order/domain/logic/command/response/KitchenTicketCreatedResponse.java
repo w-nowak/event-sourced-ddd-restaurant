@@ -1,6 +1,11 @@
 package com.wnowakcraft.samples.restaurant.order.domain.logic.command.response;
 
-import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
+import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
+import com.wnowakcraft.samples.restaurant.order.domain.model.KitchenTicketId;
+import lombok.NonNull;
+import lombok.Value;
 
-public class KitchenTicketCreatedResponse implements Command {
+@Value
+public class KitchenTicketCreatedResponse implements Response {
+    @NonNull private final KitchenTicketId kitchenTicketId;
 }
