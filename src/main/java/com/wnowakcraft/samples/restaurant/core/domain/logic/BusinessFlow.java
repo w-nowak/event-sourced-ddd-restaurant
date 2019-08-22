@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
@@ -21,14 +20,14 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 public class BusinessFlow<E extends Event, S> {
     private final Class<E> flowTriggerEventClass;
+    private final Function<E, S> flowStateHolderProvider;
     private final Function<S, ? extends Command> flowTriggerCompensationCommandProvider;
     private final List<BusinessFlowStep> businessFlowSteps;
-    private final Supplier<S> flowStateHolderSupplier;
 
-    public static <E extends Event, S> ThenSendWithCompensation<E, S> startWith(Class<E> event, Supplier<S> flowStateHolderSupplier) {
+    public static <E extends Event, S> ThenSendWithCompensation<E, S> startWith(Class<E> event, Function<E, S> flowStateHolderProvider) {
         requireNonNull(event, "event");
 
-        return new BusinessFlowBuilder<>(event, flowStateHolderSupplier);
+        return new BusinessFlowBuilder<>(event, flowStateHolderProvider);
     }
 
     public static class ResponseMapping<S> extends HashMap<Class<? extends Message>, BiConsumer<Message, S>>{ }
@@ -45,7 +44,7 @@ public class BusinessFlow<E extends Event, S> {
     private static class BusinessFlowBuilder<E extends Event, S> implements ThenSend<E, S>, ThenSendWithCompensation<E, S>, On<E, S> {
         private final Class<E> flowTriggerEventClass;
         private final List<BusinessFlowStep> businessFlowSteps = new LinkedList<>();
-        private final Supplier<S> flowStateHolderSupplier;
+        private final Function<E, S> flowStateHolderProvider;
         private Function<S, ? extends Command> flowTriggerCompensationCommandProvider;
         private Function<S, ? extends Command> currentCommandProvider;
 
@@ -67,7 +66,7 @@ public class BusinessFlow<E extends Event, S> {
         }
 
         private BusinessFlow<E, S> build() {
-            return new BusinessFlow<>(flowTriggerEventClass, flowTriggerCompensationCommandProvider, businessFlowSteps, flowStateHolderSupplier);
+            return new BusinessFlow<>(flowTriggerEventClass, flowStateHolderProvider, flowTriggerCompensationCommandProvider, businessFlowSteps);
         }
 
         @RequiredArgsConstructor
