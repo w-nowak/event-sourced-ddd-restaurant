@@ -2,6 +2,7 @@ package com.wnowakcraft.samples.restaurant.order.domain.model;
 
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
+import com.wnowakcraft.samples.restaurant.order.domain.model.*;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;

@@ -1,6 +1,7 @@
 package com.wnowakcraft.samples.restaurant.order.domain.model;
 
 import com.google.common.testing.NullPointerTester;
+import com.wnowakcraft.samples.restaurant.order.domain.model.MenuItemId;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 

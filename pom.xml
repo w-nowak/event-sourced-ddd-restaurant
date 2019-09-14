@@ -4,9 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.wnowakcraft.samples</groupId>
-    <artifactId>event-sourced-ddd-restaurant</artifactId>
+    <groupId>com.wnowakcraft.samples.event-sourced-ddd</groupId>
+    <artifactId>restaurant</artifactId>
+    <packaging>pom</packaging>
     <version>1.0.0-SNAPSHOT</version>
+
+    <modules>
+        <module>shared-kernel</module>
+        <module>order-service</module>
+    </modules>
 
     <properties>
         <junit-jupiter.version>5.2.0</junit-jupiter.version>

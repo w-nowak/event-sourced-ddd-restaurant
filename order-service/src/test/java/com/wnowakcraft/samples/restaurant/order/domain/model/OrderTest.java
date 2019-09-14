@@ -4,6 +4,7 @@ import com.google.common.testing.NullPointerTester;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.core.utils.ApplicationClock;
+import com.wnowakcraft.samples.restaurant.order.domain.model.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
