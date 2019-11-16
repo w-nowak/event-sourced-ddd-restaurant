@@ -1,6 +1,6 @@
 package com.wnowakcraft.samples.restaurant.order.domain.logic;
 
-import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlow;
+import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition;
 import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowProvisioner;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Money;
 import com.wnowakcraft.samples.restaurant.order.domain.logic.command.*;
@@ -17,12 +17,12 @@ import java.util.Collection;
 import java.util.Map;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlow.OnResponse.*;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 public class CreateOrderBusinessFlow {
-    private final BusinessFlow<OrderCreatedEvent, CreateOrderFlowState> createOrderBusinessFlow =
-            BusinessFlow
+    private final BusinessFlowDefinition<OrderCreatedEvent, CreateOrderFlowState> createOrderBusinessFlowDefinition =
+            BusinessFlowDefinition
                 .startWith(OrderCreatedEvent.class, CreateOrderFlowState::new)
                     .compensateBy(s -> new RejectOrderCommand(s.getOrderId()))
                 .thenSend(CreateOrderBusinessFlow::getItemsCurrentPricesQuery)
@@ -48,7 +48,7 @@ public class CreateOrderBusinessFlow {
     public CreateOrderBusinessFlow(BusinessFlowProvisioner<OrderCreatedEvent, CreateOrderFlowState> businessFlowProvisioner) {
         requireNonNull(businessFlowProvisioner, "businessFlowProvisioner");
 
-        businessFlowProvisioner.provision(createOrderBusinessFlow);
+        businessFlowProvisioner.provision(createOrderBusinessFlowDefinition);
     }
 
     private static GetPricesForMenuItemsQuery getItemsCurrentPricesQuery(CreateOrderFlowState state) {
