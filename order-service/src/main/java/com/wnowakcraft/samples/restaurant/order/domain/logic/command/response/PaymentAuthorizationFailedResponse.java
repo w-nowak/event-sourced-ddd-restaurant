@@ -2,5 +2,5 @@ package com.wnowakcraft.samples.restaurant.order.domain.logic.command.response;
 
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 
-public class PaymentAuthorizationFailedResponse implements Response {
+public interface PaymentAuthorizationFailedResponse extends Response {
 }

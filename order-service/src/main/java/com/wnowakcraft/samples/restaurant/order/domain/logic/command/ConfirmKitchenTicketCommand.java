@@ -1,11 +1,11 @@
 package com.wnowakcraft.samples.restaurant.order.domain.logic.command;
 
-import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
+import com.wnowakcraft.samples.restaurant.core.domain.model.AbstractCommand;
 import com.wnowakcraft.samples.restaurant.order.domain.model.KitchenTicketId;
 import lombok.NonNull;
 import lombok.Value;
 
 @Value
-public class ConfirmKitchenTicketCommand implements Command {
+public class ConfirmKitchenTicketCommand extends AbstractCommand {
     @NonNull private final KitchenTicketId kitchenTicketId;
 }

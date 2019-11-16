@@ -2,5 +2,5 @@ package com.wnowakcraft.samples.restaurant.order.domain.logic.command.response;
 
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 
-public class KitchenTicketConfirmedResponse implements Response {
+public interface KitchenTicketConfirmedResponse extends Response {
 }
