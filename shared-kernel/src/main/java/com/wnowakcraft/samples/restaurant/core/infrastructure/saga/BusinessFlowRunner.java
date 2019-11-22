@@ -26,7 +26,7 @@ public class BusinessFlowRunner <E extends Event, S> {
     @NonNull private final Function<UUID, StateEnvelope<S>> flowStateProvider;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> flowStateChangeHandler;
-    @NonNull private final BiConsumer<StateEnvelope<S>, Optional<Command>> flowFinishedHandler;
+    @NonNull private final BiConsumer<StateEnvelope<S>, Command> flowFinishedHandler;
 
     public static <E extends Event, S> BusinessFlowRunnerBuilder<E, S> from(BusinessFlowDefinition<E, S> businessFlowDefinition) {
         var businessFlowHandler = BusinessFlowHandler.createFor(businessFlowDefinition);
@@ -46,14 +46,16 @@ public class BusinessFlowRunner <E extends Event, S> {
         var flowCurrentState = businessFlowHandler.getFlowCurrentState();
         var nextCommand = businessFlowHandler.getNextCommand();
 
-        handle(flowCurrentState, nextCommand);
-    }
-
-    private void handle(StateEnvelope<S> flowCurrentState, Optional<Command> optionalNextCommand) {
         if(businessFlowHandler.isFlowComplete()) {
-            flowFinishedHandler.accept(flowCurrentState, optionalNextCommand);
+            flowFinishedHandler.accept(
+                    flowCurrentState,
+                    nextCommand.orElse(null)
+            );
         } else {
-            flowStateChangeHandler.accept(flowCurrentState, optionalNextCommand.get());
+            flowStateChangeHandler.accept(
+                    flowCurrentState,
+                    nextCommand.orElseThrow(() -> new IllegalStateException("Flow is not finished but no next command defined"))
+            );
         }
     }
 
@@ -71,7 +73,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         private Function<UUID, StateEnvelope<S>> flowStateProvider;
         private BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
         private BiConsumer<StateEnvelope<S>, Command> flowStateChangeHandler;
-        private BiConsumer<StateEnvelope<S>, Optional<Command>> flowFinishedHandler;
+        private BiConsumer<StateEnvelope<S>, Command> flowFinishedHandler;
 
         public BusinessFlowRunnerBuilder<E, S> withFlowStateProvider(Function<UUID, StateEnvelope<S>> flowStateProvider) {
             this.flowStateProvider = flowStateProvider;
@@ -88,7 +90,7 @@ public class BusinessFlowRunner <E extends Event, S> {
             return this;
         }
 
-        public BusinessFlowRunnerBuilder<E, S> onFlowFinished(BiConsumer<StateEnvelope<S>, Optional<Command>> flowFinishedHandler) {
+        public BusinessFlowRunnerBuilder<E, S> onFlowFinished(BiConsumer<StateEnvelope<S>, Command> flowFinishedHandler) {
             this.flowFinishedHandler = flowFinishedHandler;
             return this;
         }
@@ -215,7 +217,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         public StateEnvelope<S> advanceState() {
-            return new StateEnvelope<S>(stateIndex + 1, state);
+            return new StateEnvelope<>(stateIndex + 1, state);
         }
     }
 }
