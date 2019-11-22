@@ -3,7 +3,6 @@ package com.wnowakcraft.samples.restaurant.core.domain.logic;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandChannelFactory;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.EventListenerBuilder;
-import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.EventListenerFactory;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowRunner;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowStateHandler;
 import lombok.NonNull;
@@ -14,7 +13,6 @@ import lombok.Value;
 public class DefaultBusinessFlowProvisioner<E extends Event, S> implements BusinessFlowProvisioner<E, S> {
     @NonNull private final EventListenerBuilder eventListenerBuilder;
     @NonNull private final CommandChannelFactory commandChannelFactory;
-    @NonNull private final EventListenerFactory eventListenerFactory;
     @NonNull private final BusinessFlowStateHandler<S> flowStateHandler;
     @NonNull private final BusinessFlowProvisionerConfig<E> flowProvisionerConfig;
     private BusinessFlowRunner<E, S> flowRunner;
