@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
+import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
 import static java.util.stream.Collectors.toUnmodifiableList;
 
@@ -25,21 +26,27 @@ public class CreateOrderBusinessFlow {
             BusinessFlowDefinition
                 .startWith(OrderCreatedEvent.class, CreateOrderFlowState::new)
                     .compensateBy(s -> new RejectOrderCommand(s.getOrderId()))
+
                 .thenSend(CreateOrderBusinessFlow::getItemsCurrentPricesQuery)
                     .on(PricesForMenuItemsResponse.class, CreateOrderBusinessFlow::calculateOrderTotalForMenuItems)
+
                 .thenSend(CreateOrderBusinessFlow::validateOrderByCustomerQuery)
                     .on(OrderValidatedResponse.class, CreateOrderBusinessFlow::orderValidated)
                     .on(OrderValidationFailedResponse.class, failureWithCompensation())
+
                 .thenSend(CreateOrderBusinessFlow::createKitchenTicketCommand)
                     .on(KitchenTicketCreatedResponse.class, CreateOrderBusinessFlow::kitchenTicketCreated)
                     .on(KitchenTicketCreationFailedResponse.class, failureWithCompensation())
                     .compensateBy(s -> new CancelKitchenTicketCommand(s.getKitchenTicketId()))
+
                 .thenSend(CreateOrderBusinessFlow::authorizePaymentCommand)
                     .on(PaymentAuthorizedResponse.class, success())
                     .on(PaymentAuthorizationFailedResponse.class, failureWithCompensation())
+
                 .thenSend(CreateOrderBusinessFlow::confirmKitchenTicketCommand)
                     .on(KitchenTicketConfirmedResponse.class, success())
                     .on(KitchenTicketConfirmationFailedResponse.class, failureWithRetry())
+
                 .thenSend(CreateOrderBusinessFlow::approveOrderCommand)
                     .on(OrderApprovedResponse.class, success())
                     .on(OrderApproveFailedResponse.class, failureWithRetry())
@@ -82,10 +89,14 @@ public class CreateOrderBusinessFlow {
     }
 
     private static void kitchenTicketCreated(KitchenTicketCreatedResponse response, CreateOrderFlowState state) {
+        requireStateThat(state.isValidated(),
+                "Order needs to be validated against customer before can be proceeded with");
         state.kitchenTicketId(response.getKitchenTicketId());
     }
 
     private static ConfirmKitchenTicketCommand confirmKitchenTicketCommand(CreateOrderFlowState state) {
+        requireStateThat(state.getKitchenTicketId() != null,
+                "Kitchen ticket cannot be confirmed until it gets id assigned");
         return new ConfirmKitchenTicketCommand(state.getKitchenTicketId());
     }
 
