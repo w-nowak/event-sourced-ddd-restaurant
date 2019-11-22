@@ -40,8 +40,8 @@ class OrderSnapshotTest {
         assertThat(orderSnapshot.getCreationDate()).isEqualTo(CURRENT_INSTANT);
         assertThat(orderSnapshot.getAggregateVersion()).isEqualTo(Version.NONE);
         assertThat(orderSnapshot.getSnapshotId()).isNotNull();
-        assertThat(orderSnapshot.getSnapshotId().getId()).startsWith("ORDER-ORDER-S-");
-        assertThat(orderSnapshot.getSnapshotId().getId()).matches(DomainBoundBusinessId.STRING_ID_REGEX);
+        assertThat(orderSnapshot.getSnapshotId().getValue()).startsWith("ORDER-ORDER-S-");
+        assertThat(orderSnapshot.getSnapshotId().getValue()).matches(DomainBoundBusinessId.STRING_ID_REGEX);
     }
 
     @Test

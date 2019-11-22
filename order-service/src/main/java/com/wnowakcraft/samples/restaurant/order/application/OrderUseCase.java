@@ -29,7 +29,7 @@ public class OrderUseCase {
 
         eventStore.append(newOrder.getId(), newOrder.getVersion(), newOrder.getChanges());
 
-        return newOrder.getId().getId();
+        return newOrder.getId().getValue();
     }
 
     private Collection<OrderItem> orderItemsFrom(List<OrderLine> orderLines) {

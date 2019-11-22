@@ -14,7 +14,7 @@ class CustomerIdTest {
 
         var customerId = CustomerId.of(idString);
 
-        assertThat(customerId.getId()).isEqualTo(idString);
+        assertThat(customerId.getValue()).isEqualTo(idString);
     }
 
     @Test

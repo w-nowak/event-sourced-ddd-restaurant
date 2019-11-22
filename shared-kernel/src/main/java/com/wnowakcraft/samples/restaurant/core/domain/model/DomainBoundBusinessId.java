@@ -1,7 +1,6 @@
 package com.wnowakcraft.samples.restaurant.core.domain.model;
 
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
 
 import java.util.UUID;
@@ -10,7 +9,6 @@ import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
 import static com.wnowakcraft.preconditions.Preconditions.requireThat;
 import static java.lang.String.format;
 
-@Getter
 @ToString
 @EqualsAndHashCode
 public abstract class DomainBoundBusinessId implements Id<String> {
@@ -18,13 +16,13 @@ public abstract class DomainBoundBusinessId implements Id<String> {
     private static final String FIRST_THREE_UUUID_GROUPS_REGEX = "\\w{8}" + SEPARATOR + "\\w{4}" + SEPARATOR + "\\w{4}";
     public static final String STRING_ID_REGEX = "\\w+" + SEPARATOR + "\\w+" + SEPARATOR + "[A-Z]" + SEPARATOR + FIRST_THREE_UUUID_GROUPS_REGEX;
 
-    private final String id;
+    private final String idValue;
 
     protected DomainBoundBusinessId(String domainObjectId, String domainObjectName, char domainObjectType) {
         requireNonEmpty(domainObjectId, "domainObjectId");
         requireNonEmpty(domainObjectName, "domainObjectName");
 
-        id = idPrefixOf(domainObjectId, domainObjectName, domainObjectType)
+        idValue = idPrefixOf(domainObjectId, domainObjectName, domainObjectType)
                 + SEPARATOR
                 + threeMostSignificantComponentsOf(UUID.randomUUID());
     }
@@ -35,7 +33,12 @@ public abstract class DomainBoundBusinessId implements Id<String> {
         requireNonEmpty(domainObjectName, "domainObjectName");
         verifyAggregateIdCorrectness(domainObjectId, domainName, domainObjectName, domainObjectType);
 
-        id = domainObjectId;
+        idValue = domainObjectId;
+    }
+
+    @Override
+    public String getValue() {
+        return idValue;
     }
 
     private static void verifyAggregateIdCorrectness(String domainObjectId, String domainName, String domainObjectName,

@@ -1,7 +1,6 @@
 package com.wnowakcraft.samples.restaurant.order.domain.model;
 
 import com.google.common.testing.NullPointerTester;
-import com.wnowakcraft.samples.restaurant.order.domain.model.RestaurantId;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -15,7 +14,7 @@ class RestaurantIdTest {
 
         var restaurantId = RestaurantId.of(idString);
 
-        assertThat(restaurantId.getId()).isEqualTo(idString);
+        assertThat(restaurantId.getValue()).isEqualTo(idString);
     }
 
     @Test
