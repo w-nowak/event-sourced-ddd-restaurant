@@ -5,5 +5,5 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import java.util.function.Consumer;
 
 public interface EventListener<E extends Event> {
-    EventListenerBuilder onEvent(Consumer<E> eventConsumer);
+    void onEvent(Consumer<E> eventConsumer);
 }

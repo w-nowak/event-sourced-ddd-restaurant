@@ -38,7 +38,7 @@ public class BusinessFlowDefinition<E extends Event, S> {
     }
 
     public static boolean isNotMarkerConsumer(BiConsumer<?, ?> consumer) {
-        return MarkerConsumer.class.isAssignableFrom(consumer.getClass());
+        return !MarkerConsumer.class.isAssignableFrom(consumer.getClass());
     }
 
     @Getter
@@ -71,7 +71,8 @@ public class BusinessFlowDefinition<E extends Event, S> {
 
         @Override
         public <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer) {
-            return new BusinessFlowStepBuilder();
+            return new BusinessFlowStepBuilder()
+                    .on(message, responseMessageConsumer);
         }
 
         private BusinessFlowDefinition<E, S> build() {
@@ -97,6 +98,9 @@ public class BusinessFlowDefinition<E extends Event, S> {
 
             @Override
             public BusinessFlowDefinition<E, S> done() {
+                businessFlowSteps.add(
+                        new BusinessFlowStep<>(currentCommandProvider, this.responseMapping, this.compensatingCommandProvider)
+                );
                 return build();
             }
 

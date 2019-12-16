@@ -12,5 +12,5 @@ public interface BusinessFlowStateHandler<S> {
 
     void updateState(StateEnvelope<S> flowState, Command nextCommand);
 
-    void finalizeState(StateEnvelope<S> flowState, Command flowFinalizingCommand);
+    void finalizeState(StateEnvelope<S> flowState);
 }

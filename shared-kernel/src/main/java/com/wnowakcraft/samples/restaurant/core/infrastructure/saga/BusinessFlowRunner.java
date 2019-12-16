@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
 import static lombok.AccessLevel.PRIVATE;
@@ -26,7 +27,7 @@ public class BusinessFlowRunner <E extends Event, S> {
     @NonNull private final Function<UUID, StateEnvelope<S>> flowStateProvider;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> flowStateChangeHandler;
-    @NonNull private final BiConsumer<StateEnvelope<S>, Command> flowFinishedHandler;
+    @NonNull private final Consumer<StateEnvelope<S>> flowFinishedHandler;
 
     public static <E extends Event, S> BusinessFlowRunnerBuilder<E, S> from(BusinessFlowDefinition<E, S> businessFlowDefinition) {
         var businessFlowHandler = BusinessFlowHandler.createFor(businessFlowDefinition);
@@ -47,10 +48,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         var nextCommand = businessFlowHandler.getNextCommand();
 
         if(businessFlowHandler.isFlowComplete()) {
-            flowFinishedHandler.accept(
-                    flowCurrentState,
-                    nextCommand.orElse(null)
-            );
+            flowFinishedHandler.accept(flowCurrentState);
         } else {
             flowStateChangeHandler.accept(
                     flowCurrentState,
@@ -73,7 +71,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         private Function<UUID, StateEnvelope<S>> flowStateProvider;
         private BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
         private BiConsumer<StateEnvelope<S>, Command> flowStateChangeHandler;
-        private BiConsumer<StateEnvelope<S>, Command> flowFinishedHandler;
+        private Consumer<StateEnvelope<S>> flowFinishedHandler;
 
         public BusinessFlowRunnerBuilder<E, S> withFlowStateProvider(Function<UUID, StateEnvelope<S>> flowStateProvider) {
             this.flowStateProvider = flowStateProvider;
@@ -90,7 +88,7 @@ public class BusinessFlowRunner <E extends Event, S> {
             return this;
         }
 
-        public BusinessFlowRunnerBuilder<E, S> onFlowFinished(BiConsumer<StateEnvelope<S>, Command> flowFinishedHandler) {
+        public BusinessFlowRunnerBuilder<E, S> onFlowFinished(Consumer<StateEnvelope<S>> flowFinishedHandler) {
             this.flowFinishedHandler = flowFinishedHandler;
             return this;
         }
@@ -141,10 +139,13 @@ public class BusinessFlowRunner <E extends Event, S> {
                 if(BusinessFlowDefinition.isCompensateMarkerConsumer(foundResponseMapping))
                 {
                     flowInterruptedByCompensation = true;
-                } else {
-                    foundResponseMapping.accept(commandResponse, flowCurrentState.getState());
-                    flowCurrentState = flowCurrentState.advanceState();
+                    return;
                 }
+
+                if (BusinessFlowDefinition.isNotMarkerConsumer(foundResponseMapping)) {
+                    foundResponseMapping.accept(commandResponse, flowCurrentState.getState());
+                }
+                flowCurrentState = flowCurrentState.advanceState();
             };
         }
 
@@ -154,13 +155,13 @@ public class BusinessFlowRunner <E extends Event, S> {
 
         Optional<Command> getNextCommand() {
             return isFlowComplete() ?
-                    getCompensationCommandWhenCompletedByCompensationOrEmpty(currentStepDefinition(), flowCurrentState) :
+                    getCompensationCommandWhenCompletedByCompensationOrEmpty(this::currentStepDefinition, flowCurrentState) :
                     Optional.of(currentStepDefinition().getStepCommandProvider().apply(flowCurrentState.getState()));
         }
 
-        private Optional<Command> getCompensationCommandWhenCompletedByCompensationOrEmpty(BusinessFlowStep<S> businessFlowStep, StateEnvelope<S> flowCurrentState) {
+        private Optional<Command> getCompensationCommandWhenCompletedByCompensationOrEmpty(Supplier<BusinessFlowStep<S>> businessFlowStep, StateEnvelope<S> flowCurrentState) {
             return flowInterruptedByCompensation ?
-                    Optional.ofNullable(businessFlowStep.getCompensatingCommandFnProvider().apply(flowCurrentState.getState())) :
+                    Optional.ofNullable(businessFlowStep.get().getCompensatingCommandFnProvider().apply(flowCurrentState.getState())) :
                     Optional.empty();
         }
 
@@ -170,7 +171,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         boolean isFlowComplete() {
-            return businessFlowDefinition.getBusinessFlowSteps().size() -1 == flowCurrentState.getStateIndex();
+            return businessFlowDefinition.getBusinessFlowSteps().size() == flowCurrentState.getStateIndex();
         }
 
         void initWith(StateEnvelope<S> flowState) {
