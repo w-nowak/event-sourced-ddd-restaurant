@@ -11,13 +11,13 @@ import java.util.function.Consumer;
 public class EventListenerBuilder {
     private final EventListenerFactory eventListenerFactory;
 
-    public <E extends Event> EventListenerBuilderBound<E> listenToEventsOfKind(Class<E> eventKind) {
+    public <E extends Event> EventListenerBuilderBound<E> listenToEventsOfKind(Class<? super E> eventKind) {
         return new EventListenerBuilderBound<>(eventKind);
     }
 
     @RequiredArgsConstructor
     public class EventListenerBuilderBound<E extends Event> {
-        private final Class<E> boundOnEventKind;
+        private final Class<? super E> boundOnEventKind;
         private Consumer<E> eventConsumer;
         private Collection<Class<? extends E>> acceptedEventTypes;
 
@@ -34,7 +34,7 @@ public class EventListenerBuilder {
 
         public void listenToEvents() {
             eventListenerFactory
-                    .listenToEventsOfKind(boundOnEventKind)
+                    .<E>listenToEventsOfKind(boundOnEventKind)
                     .thenAccept(eventListener -> eventListener.onEvent(this::handOverAcceptedEvent));
 
         }

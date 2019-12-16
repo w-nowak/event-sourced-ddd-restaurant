@@ -29,7 +29,7 @@ public class DefaultBusinessFlowProvisioner<E extends Event, S> implements Busin
                 .run();
 
         eventListenerBuilder
-                .listenToEventsOfKind(flowProvisionerConfig.getEventKindToListenTo())
+                .<E>listenToEventsOfKind(flowProvisionerConfig.getEventKindToListenTo())
                 .acceptOnly(flowProvisionerConfig.getEventInitializingFlow())
                 .onEvent(flowRunner::onInitHandler)
                 .listenToEvents();
@@ -42,7 +42,7 @@ public class DefaultBusinessFlowProvisioner<E extends Event, S> implements Busin
     @Value
     public static class BusinessFlowProvisionerConfig<E extends Event> {
         @NonNull private final String commandResponseChannelName;
-        @NonNull private final Class<E> eventKindToListenTo;
+        @NonNull private final Class<? super E> eventKindToListenTo;
         @NonNull private final Class<? extends E> eventInitializingFlow;
     }
 }
