@@ -66,6 +66,10 @@ public class CommandResponseChannelMock {
         return this.asyncTestSupport;
     }
 
+    public void acceptNewCommandResponseJustReceived(Response commandResponse) {
+        commandResponseConsumerCaptor.getValue().accept(commandResponse);
+    }
+
     @RequiredArgsConstructor(access = PRIVATE)
     public static class ThenRespondWith {
         private final Response commandResponse;

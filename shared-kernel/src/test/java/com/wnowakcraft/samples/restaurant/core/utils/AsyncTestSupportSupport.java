@@ -33,7 +33,7 @@ public class AsyncTestSupportSupport implements AsyncTestWaitSupport {
     }
 
     private static class AsyncTestMonitorWait {
-        private static final int MONITOR_TIMEOUT_MILLIS = 60000;
+        private static final int MONITOR_TIMEOUT_MILLIS = 6000;
         private final Object monitorObject = new Object();
         private boolean monitorConditionMet;
 
@@ -55,10 +55,9 @@ public class AsyncTestSupportSupport implements AsyncTestWaitSupport {
                 try {
                     monitorObject.wait(MONITOR_TIMEOUT_MILLIS);
                 } catch (InterruptedException ex) {
-                    throw new RuntimeException(
-                            format("Execution of async flow took too long. It cannot exceed %d seconds", MONITOR_TIMEOUT_MILLIS / 1000)
-                    );
+                    throw new RuntimeException("Main test thread has been interrupted by another thread", ex);
                 }
+
             }
         }
     }

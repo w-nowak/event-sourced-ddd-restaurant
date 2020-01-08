@@ -207,6 +207,9 @@ public class BusinessFlowRunner <E extends Event, S> {
         private final int stateIndex;
         private final S state;
 
+        public static <S> StateEnvelope<S> recreateExistingState(int stateIndex, S state) {
+            return new StateEnvelope<>(stateIndex, state);
+        }
 
         public StateEnvelope(S state) {
             this(0, state);
