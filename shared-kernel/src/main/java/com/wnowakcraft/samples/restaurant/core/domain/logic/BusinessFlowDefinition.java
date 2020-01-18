@@ -9,12 +9,13 @@ import lombok.RequiredArgsConstructor;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
+import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 
 @Getter
@@ -41,12 +42,24 @@ public class BusinessFlowDefinition<E extends Event, S> {
         return !MarkerConsumer.class.isAssignableFrom(consumer.getClass());
     }
 
+    public Optional<Function<S, ? extends Command>> getFlowTriggerCompensationCommandProvider() {
+        return ofNullable(flowTriggerCompensationCommandProvider);
+    }
+
     @Getter
     @RequiredArgsConstructor(access = PRIVATE)
     public static class BusinessFlowStep<S>  {
         private final Function<S, ? extends Command> stepCommandProvider;
         private final ResponseMapping<S> responseMapping;
         private final Function<S, ? extends Command> compensatingCommandFnProvider;
+
+        public static <S> BusinessFlowStep<S> emptyBusinessFlowStep() {
+            return new BusinessFlowStep<>(null, new ResponseMapping<S>(), null );
+        }
+
+        public Optional<Function<S, ? extends Command>> getCompensatingCommandFnProvider() {
+            return ofNullable(compensatingCommandFnProvider);
+        }
     }
 
     @RequiredArgsConstructor(access = PRIVATE)
@@ -131,12 +144,27 @@ public class BusinessFlowDefinition<E extends Event, S> {
         }
     }
     private static class MarkerSuccessConsumer<S> extends MarkerConsumer<S> { }
-    private static class MarkerFailureWithCompensateConsumer<S> extends MarkerConsumer<S> { }
     private static class MarkerFailureWithRetryConsumer<S> extends MarkerConsumer<S> { }
+
+    @RequiredArgsConstructor
+    private static class MarkerFailureWithCompensateConsumer<S> extends MarkerConsumer<S> {
+        private final BiConsumer<Message, S> targetConsumer;
+
+        MarkerFailureWithCompensateConsumer() {
+            this.targetConsumer = (message, s) -> {};
+        }
+
+        @Override
+        public void accept(Message message, S stateHolder) {
+            targetConsumer.accept(message, stateHolder);
+        }
+    }
+
     public interface OnResponse<E extends  Event, S> extends ThenSend<E, S> {
-        static <S> MarkerConsumer<S> success() { return new MarkerSuccessConsumer<>(); };
-        static <S> MarkerConsumer<S> failureWithCompensation() { return  new MarkerFailureWithCompensateConsumer<>(); };
-        static <S> MarkerConsumer<S> failureWithRetry() { return  new MarkerFailureWithRetryConsumer<>(); };
+        static <S> MarkerConsumer<S> success() { return new MarkerSuccessConsumer<>(); }
+        static <S> MarkerConsumer<S> failureWithRetry() { return  new MarkerFailureWithRetryConsumer<>(); }
+        static <S> MarkerConsumer<S> failureWithCompensation() { return  new MarkerFailureWithCompensateConsumer<>(); }
+        static <S, M extends Message> MarkerConsumer<S> failureWithCompensation(BiConsumer<? super M, S> targetConsumer) { return  new MarkerFailureWithCompensateConsumer<>((BiConsumer<Message, S>)targetConsumer); }
         <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer);
         <C extends Command> OnResponse<E, S> compensateBy(Function<S, ? extends C> compensatingCommandProvider);
         BusinessFlowDefinition<E, S> done();

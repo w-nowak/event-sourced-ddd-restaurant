@@ -1,11 +1,9 @@
 package com.wnowakcraft.samples.restaurant.core.infrastructure.saga;
 
+import com.google.common.util.concurrent.Runnables;
 import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition;
 import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.BusinessFlowStep;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Message;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
+import com.wnowakcraft.samples.restaurant.core.domain.model.*;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +14,10 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static lombok.AccessLevel.PRIVATE;
 
 @RequiredArgsConstructor
@@ -44,8 +43,8 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         businessFlowHandler.consume(commandResponse);
+        var nextCommand = businessFlowHandler.getNextCommandUpdateStateIndex();
         var flowCurrentState = businessFlowHandler.getFlowCurrentState();
-        var nextCommand = businessFlowHandler.getNextCommand();
 
         if(businessFlowHandler.isFlowComplete()) {
             flowFinishedHandler.accept(flowCurrentState);
@@ -59,7 +58,7 @@ public class BusinessFlowRunner <E extends Event, S> {
 
     public void onInitHandler(E initEvent) {
         var initFlowState = businessFlowHandler.initWith(initEvent);
-        var firstCommand = businessFlowHandler.getNextCommand().get();
+        var firstCommand = businessFlowHandler.getNextCommandUpdateStateIndex().get();
 
         businessFlowInitHandler.accept(initFlowState, firstCommand);
     }
@@ -103,9 +102,10 @@ public class BusinessFlowRunner <E extends Event, S> {
 
     @RequiredArgsConstructor(access = PRIVATE)
     private static class BusinessFlowHandler<E extends Event, S> {
+        private static final short INDEX_OF_FULLY_COMPENSATED_STATE = -2;
+        private static final short INIT_EVENT_COMPENSATION_STEP_INDEX = -1;
         private final BusinessFlowDefinition<E, S> businessFlowDefinition;
         private StateEnvelope<S> flowCurrentState;
-        private boolean flowInterruptedByCompensation;
 
         static <S, E extends Event> BusinessFlowHandler<E, S> createFor(BusinessFlowDefinition<E, S> businessFlowDefinition) {
             return new BusinessFlowHandler<>(businessFlowDefinition);
@@ -114,14 +114,27 @@ public class BusinessFlowRunner <E extends Event, S> {
         private boolean accepts(Response commandResponse) {
             requireFlowNotYetComplete();
 
+            return isCompensationSucceededResponeWhenCompensating(commandResponse) ||
+                    isAnyResponseMappingFor(commandResponse.getClass());
+        }
+
+        private boolean isCompensationSucceededResponeWhenCompensating(Response commandResponse) {
+            return commandResponse instanceof CompensationSucceededResponse && flowCurrentState.isCompensation();
+        }
+
+        private boolean isAnyResponseMappingFor(Class<? extends Response> commandResponseClass) {
             return currentStepDefinition().getResponseMapping().keySet().stream()
-                    .anyMatch(mappedClass -> mappedClass.isAssignableFrom(commandResponse.getClass()));
+                    .anyMatch(mappedClass -> mappedClass.isAssignableFrom(commandResponseClass));
         }
 
         private BusinessFlowStep<S> currentStepDefinition() {
             requireFlowNotYetComplete();
 
-            return businessFlowDefinition.getBusinessFlowSteps().get(flowCurrentState.getStateIndex());
+            var flowCurrentStateIndex = flowCurrentState.getStateIndex();
+
+            return flowCurrentStateIndex == INIT_EVENT_COMPENSATION_STEP_INDEX ?
+                    BusinessFlowStep.emptyBusinessFlowStep() :
+                    businessFlowDefinition.getBusinessFlowSteps().get(flowCurrentStateIndex);
         }
 
         void consume(Response commandResponse) {
@@ -131,47 +144,80 @@ public class BusinessFlowRunner <E extends Event, S> {
                     .filter(mapping -> mapping.getKey().isAssignableFrom(commandResponse.getClass()))
                     .findFirst()
                     .map(Map.Entry::getValue)
-                    .ifPresent(handleResponse(commandResponse));
+                    .ifPresentOrElse(handleResponse(commandResponse), onlyAdvanceFlowStateWhenCompensationSucceeded(commandResponse));
         }
 
         private Consumer<BiConsumer<Message, S>> handleResponse(Response commandResponse) {
-            return foundResponseMapping -> {
-                if(BusinessFlowDefinition.isCompensateMarkerConsumer(foundResponseMapping))
-                {
-                    flowInterruptedByCompensation = true;
-                    return;
+            return responseConsumer -> {
+
+                if (BusinessFlowDefinition.isNotMarkerConsumer(responseConsumer) ||
+                        BusinessFlowDefinition.isCompensateMarkerConsumer(responseConsumer)) {
+                    responseConsumer.accept(commandResponse, flowCurrentState.getState());
                 }
 
-                if (BusinessFlowDefinition.isNotMarkerConsumer(foundResponseMapping)) {
-                    foundResponseMapping.accept(commandResponse, flowCurrentState.getState());
+                if(BusinessFlowDefinition.isCompensateMarkerConsumer(responseConsumer)) {
+                    flowCurrentState = flowCurrentState.asCompensation();
                 }
-                flowCurrentState = flowCurrentState.advanceState();
+
+                advanceFlowCurrentState();
             };
+        }
+
+        private Runnable onlyAdvanceFlowStateWhenCompensationSucceeded(Response response) {
+            return isCompensationSucceededResponeWhenCompensating(response) ?
+                    this::advanceFlowCurrentState : Runnables.doNothing();
+        }
+
+        private void advanceFlowCurrentState() {
+            flowCurrentState = flowCurrentState.advanceState();
         }
 
         StateEnvelope<S> getFlowCurrentState() {
             return flowCurrentState;
         }
 
-        Optional<Command> getNextCommand() {
-            return isFlowComplete() ?
-                    getCompensationCommandWhenCompletedByCompensationOrEmpty(this::currentStepDefinition, flowCurrentState) :
-                    Optional.of(currentStepDefinition().getStepCommandProvider().apply(flowCurrentState.getState()));
+        Optional<Command> getNextCommandUpdateStateIndex() {
+            var possibleNextCommand = getFollowingCommand();
+
+            while (isNoNextCommandDefinedAtCurrentStepWhenCompensating(possibleNextCommand)) {
+                advanceFlowCurrentState();
+                possibleNextCommand = getFollowingCommand();
+            }
+
+            return possibleNextCommand;
         }
 
-        private Optional<Command> getCompensationCommandWhenCompletedByCompensationOrEmpty(Supplier<BusinessFlowStep<S>> businessFlowStep, StateEnvelope<S> flowCurrentState) {
-            return flowInterruptedByCompensation ?
-                    Optional.ofNullable(businessFlowStep.get().getCompensatingCommandFnProvider().apply(flowCurrentState.getState())) :
-                    Optional.empty();
+        private boolean isNoNextCommandDefinedAtCurrentStepWhenCompensating(Optional<Command> nextCommand) {
+            return !isFlowComplete() && flowCurrentState.isCompensation() && nextCommand.isEmpty();
         }
 
+        private Optional<Command> getFollowingCommand() {
+            if(isFlowComplete()){
+                return empty();
+            }
+
+            var followingCommandProvider =
+                    flowCurrentState.isCompensation() ?
+                            getNextCompensationCommandProvider() :
+                            of(currentStepDefinition().getStepCommandProvider());
+
+            return followingCommandProvider.map(provider -> provider.apply(flowCurrentState.getState()));
+        }
+
+        private Optional<Function<S, ? extends Command>> getNextCompensationCommandProvider() {
+            return flowCurrentState.getStateIndex() == INIT_EVENT_COMPENSATION_STEP_INDEX ?
+                    businessFlowDefinition.getFlowTriggerCompensationCommandProvider() :
+                    currentStepDefinition().getCompensatingCommandFnProvider();
+        }
 
         boolean isInitialized() {
             return flowCurrentState != null;
         }
 
         boolean isFlowComplete() {
-            return businessFlowDefinition.getBusinessFlowSteps().size() == flowCurrentState.getStateIndex();
+            return
+                    flowCurrentState.getStateIndex() == businessFlowDefinition.getBusinessFlowSteps().size() ||
+                    flowCurrentState.getStateIndex() == INDEX_OF_FULLY_COMPENSATED_STATE;
         }
 
         void initWith(StateEnvelope<S> flowState) {
@@ -195,9 +241,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         private void requireFlowNotYetComplete() {
-            requireStateThat(
-                    !(flowInterruptedByCompensation || isFlowComplete()),
-                    "Flow is already complete and can do nothing more");
+            requireStateThat(!isFlowComplete(), "Flow is already complete and can do nothing more");
         }
     }
 
@@ -205,23 +249,30 @@ public class BusinessFlowRunner <E extends Event, S> {
     @Getter
     public static class StateEnvelope<S> {
         private final int stateIndex;
+        private final boolean compensation;
         private final S state;
 
-        public static <S> StateEnvelope<S> recreateExistingState(int stateIndex, S state) {
-            return new StateEnvelope<>(stateIndex, state);
+        public static <S> StateEnvelope<S> recreateExistingState(int stateIndex, S state, boolean compensation) {
+            return new StateEnvelope<>(stateIndex, state, compensation);
         }
 
         public StateEnvelope(S state) {
-            this(0, state);
+            this(0, state, false);
         }
 
-        StateEnvelope(int stateIndex, S state) {
+        StateEnvelope(int stateIndex, S state, boolean compensation) {
             this.stateIndex = stateIndex;
             this.state = state;
+            this.compensation = compensation;
         }
 
         public StateEnvelope<S> advanceState() {
-            return new StateEnvelope<>(stateIndex + 1, state);
+            int nextStateIndex = compensation ? stateIndex - 1 : stateIndex + 1;
+            return new StateEnvelope<>(nextStateIndex, state, compensation);
+        }
+
+        public StateEnvelope<S> asCompensation() {
+            return new StateEnvelope<>(stateIndex, state, true);
         }
     }
 }

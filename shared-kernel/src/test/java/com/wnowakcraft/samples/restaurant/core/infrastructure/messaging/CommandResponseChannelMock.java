@@ -7,6 +7,8 @@ import com.wnowakcraft.samples.restaurant.core.utils.AsyncTestWaitSupport;
 import lombok.RequiredArgsConstructor;
 import org.mockito.ArgumentCaptor;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
@@ -18,7 +20,7 @@ import static org.mockito.Mockito.mock;
 @RequiredArgsConstructor(access = PRIVATE)
 public class CommandResponseChannelMock {
     private final ArgumentCaptor<Consumer<Response>> commandResponseConsumerCaptor;
-    private final Class<? extends Response> asyncFlowFinishedResponseClass;
+    private final Collection<Response> asyncFlowFinishedResponses;
     private final SentCommandNotifier sentCommandNotifierMock = mock(SentCommandNotifier.class);
     private AsyncCommandResponse asyncCommandResponse = new AsyncPoolCommandResponse();
     private AsyncTestSupportSupport asyncTestSupport = new AsyncTestSupportSupport();
@@ -26,7 +28,7 @@ public class CommandResponseChannelMock {
 
     public static CommandResponseChannelMock mockCommandResponseChannel(
             String channelName, CommandChannelFactory commandChannelFactoryMock,
-            Class<? extends Response> asyncFlowFinishedResponseClass){
+            Collection<Response> asyncFlowFinishedResponses){
 
         CommandResponseChannel commandResponseChannel = mock(CommandResponseChannel.class);
 
@@ -36,7 +38,11 @@ public class CommandResponseChannelMock {
         given(commandChannelFactoryMock.createResponseChannel(channelName))
                 .willReturn(CompletableFuture.completedFuture(commandResponseChannel));
 
-        return new CommandResponseChannelMock(commandResponseConsumerCaptor, asyncFlowFinishedResponseClass);
+        return new CommandResponseChannelMock(commandResponseConsumerCaptor, asyncFlowFinishedResponses);
+    }
+
+    public static Collection<Response> allowedFlowFinishedResponses(Response... responses) {
+        return List.of(responses);
     }
 
     public CommandResponseChannelMock when(Command commandIssued, ThenRespondWith thenRespondWith) {
@@ -86,10 +92,10 @@ public class CommandResponseChannelMock {
     private class AsyncPoolCommandResponse implements AsyncCommandResponse {
 
         @Override
-        public void scheduleResponse(Consumer<Response> responseConsumer, Response response) {
+        public void scheduleResponse(Consumer<Response> responseConsumer, Response actualResponse) {
             ForkJoinPool.commonPool().execute(() -> {
-                responseConsumer.accept(response);
-                if(response.getClass() == asyncFlowFinishedResponseClass) {
+                responseConsumer.accept(actualResponse);
+                if(asyncFlowFinishedResponses.stream().anyMatch( response -> response.equals(actualResponse))) {
                     asyncTestSupport.finishAsyncFlow();
                 }
             }
