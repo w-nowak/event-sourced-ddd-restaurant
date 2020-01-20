@@ -67,6 +67,16 @@ public class TestData {
     @NoArgsConstructor(access = PRIVATE)
     static class TestState {
         private final static String NO_QUERIED_DATA = null;
+        private static final boolean FIRST_COMMAND_HANDLED = true;
+        private static final boolean FIRST_COMMAND_NOT_HANDLED = false;
+        private static final boolean SECOND_COMMAND_HANDLED = true;
+        private static final boolean SECOND_COMMAND_NOT_HANDLED = false;
+        private static final boolean FIRST_COMMAND_COMPENSATED = true;
+        private static final boolean FIRST_COMMAND_NOT_COMPENSATED = false;
+        private static final boolean SECOND_COMMAND_NOT_COMPENSATED = false;
+        public static final boolean COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND = false;
+        private static final boolean COMPENSATION_INITIATED_ON_SECOND_COMMAND = true;
+        private static final boolean COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND = false;
 
         private boolean firstCommandHandled;
         private boolean secondCommandHandled;
@@ -77,23 +87,23 @@ public class TestData {
         private String requestedData;
 
         static TestState bothCommandsHandledAndRequestedDataSetWith(String requestedData) {
-            return new TestState(true, true, false, false, false, false, requestedData);
+            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, requestedData);
         }
 
         static TestState onlyFistCommandHandled () {
-            return new TestState(true, false, false, false, false, false, NO_QUERIED_DATA);
+            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, NO_QUERIED_DATA);
         }
 
         static TestState fistCommandHandledAndRequestedDataIs(String requestedData) {
-            return new TestState(true, false, false, false, false, false, requestedData);
+            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, requestedData);
         }
 
         static TestState noCommandHandled() {
-            return new TestState(false, false, false, false, false, false, NO_QUERIED_DATA);
+            return new TestState(FIRST_COMMAND_NOT_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, NO_QUERIED_DATA);
         }
 
         static TestState stateStartedOnFirstCommandCompensatedOnSecondWithRequestedDataSetWith(String requestedData) {
-            return new TestState(true, false, true, false, false, true, requestedData);
+            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_INITIATED_ON_SECOND_COMMAND, requestedData);
         }
 
         void firstCommandHandled() {
