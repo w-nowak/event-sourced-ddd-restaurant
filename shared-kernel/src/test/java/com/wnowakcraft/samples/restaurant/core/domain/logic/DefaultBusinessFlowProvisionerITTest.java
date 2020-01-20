@@ -1,11 +1,12 @@
 package com.wnowakcraft.samples.restaurant.core.domain.logic;
 
 import com.wnowakcraft.samples.restaurant.core.domain.logic.DefaultBusinessFlowProvisioner.BusinessFlowProvisionerConfig;
-import com.wnowakcraft.samples.restaurant.core.domain.model.*;
+import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
+import com.wnowakcraft.samples.restaurant.core.domain.model.CompensationSucceededResponse;
+import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.*;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowRunner.StateEnvelope;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowStateHandler;
-import lombok.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -21,12 +22,11 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.DefaultBusinessFlowProvisionerITTest.StateIndexAndCompensation.normalFlowAt;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.StateIndexAndCompensation.normalFlowAt;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.ThenRespondWith.thenRespondWith;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.allowedFlowFinishedResponses;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static lombok.AccessLevel.PRIVATE;
-import static lombok.AccessLevel.PROTECTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
@@ -34,52 +34,44 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 class DefaultBusinessFlowProvisionerITTest {
-    private static final FirstCommand FIRST_COMMAND = new FirstCommand();
-    private static final SecondCommand SECOND_COMMAND = new SecondCommand();
-    private static final FinishingCommand FINISHING_COMMAND = new FinishingCommand();
-    private static final QueryForData QUERY_FOR_DATA = new QueryForData();
-    private static final FirstCommandSuccessfulResponse FIRST_COMMAND_SUCCESSFUL_RESPONSE =
-            new FirstCommandSuccessfulResponse(UUID.randomUUID());
-    private static final SecondCommandSuccessfulResponse SECOND_COMMAND_SUCCESSFUL_RESPONSE =
-            new SecondCommandSuccessfulResponse(UUID.randomUUID());
-    private static final FinishingCommandSuccessfulResponse FINISHING_COMMAND_SUCCESSFUL_RESPONSE =
-            new FinishingCommandSuccessfulResponse(UUID.randomUUID());
-    private static final String REQUESTED_DATA = "requested string data";
-    private static final QueriedDataReturnedResponse REQUESTED_DATA_RETURNED_RESPONSE =
-            new QueriedDataReturnedResponse(UUID.randomUUID(), REQUESTED_DATA);
-    private static final InitEventCompensationCommand INIT_EVENT_COMPENSATION =
-            new InitEventCompensationCommand();
-    private static final FirstCommandCompensation FIRST_COMMAND_COMPENSATION =
-            new FirstCommandCompensation();
-    private static final SecondCommandCompensation SECOND_COMMAND_COMPENSATION =
-            new SecondCommandCompensation();
-    private static final int STATE_INDEX_AFTER_INIT_EVENT_HANDLED = 0;
-    private static final int STATE_INDEX_AFTER_FIRST_COMMAND_HANDLED = 1;
-    private static final int STATE_INDEX_AFTER_REQUESTED_DATA_HANDLED = 2;
+    private static final int FLOW_FULLY_COMPENSATED_STATE_INDEX =  -2;
+    private static final int INIT_EVENT_STATE_INDEX =  -1;
+    private static final int INIT_EVENT_HANDLED_STATE_INDEX = handled(INIT_EVENT_STATE_INDEX);
+    private static final int FIRST_COMMAND_STATE_INDEX = 0;
+    private static final int FIRST_COMMAND_HANDLED_STATE_INDEX = handled(FIRST_COMMAND_STATE_INDEX);
+    private static final int QUERY_FOR_DATA_STATE_INDEX = 1;
+    private static final int QUERY_FOR_DATA_HANDLED_STATE_INDEX = handled(QUERY_FOR_DATA_STATE_INDEX);
+    private static final int SECOND_COMMAND_STATE_INDEX = 2;
+    private static final int FINISHING_COMMAND_STATE_INDEX = 3;
+    private static final int FINISHING_COMMAND_HANDLED_STATE_INDEX = handled(FINISHING_COMMAND_STATE_INDEX);
 
     private Fixture fixture;
 
+    private static int handled(int stateIndex) {
+        return stateIndex + 1;
+    }
+
     @BeforeEach
     void setUp() {
-        var initFlowState = new TestState();
+        var initFlowState = TestState.noCommandHandled();
 
         var businessFlowDefinition =
                 BusinessFlowDefinition
                         .startWith(TestInitEvent.class, e -> initFlowState)
-                            .compensateBy(s -> INIT_EVENT_COMPENSATION)
-                        .thenSend(s -> FIRST_COMMAND)
+                            .compensateBy(s -> INIT_EVENT.COMPENSATION_COMMAND)
+                        .thenSend(s -> FIRST_COMMAND.COMMAND)
                             .on(FirstCommandSuccessfulResponse.class, (resp, state) -> state.firstCommandHandled())
                             .on(FirstCommandErrorResponse.class, failureWithCompensation((resp, state) -> state.compensationInitiatedOnFirstCommand()))
                             .on(CompensationSucceededResponse.class, (resp, state) -> state.firstCommandCompensated())
-                            .compensateBy(s -> FIRST_COMMAND_COMPENSATION)
-                        .thenSend(s -> QUERY_FOR_DATA)
+                            .compensateBy(s -> FIRST_COMMAND.COMPENSATION)
+                        .thenSend(s -> QUERY_FOR_DATA.QUERY)
                             .on(QueriedDataReturnedResponse.class, (resp, state) -> state.requestedDataIs(resp.getQueriedData()))
-                        .thenSend(s -> SECOND_COMMAND)
+                        .thenSend(s -> SECOND_COMMAND.COMMAND)
                             .on(SecondCommandSuccessfulResponse.class, (resp, state) -> state.secondCommandHandled())
                             .on(SecondCommandErrorResponse.class, failureWithCompensation((resp, state) -> state.compensationInitiatedOnSecondCommand()))
                             .on(CompensationSucceededResponse.class, (resp, state) -> state.secondCommandCompensated())
-                            .compensateBy(s -> SECOND_COMMAND_COMPENSATION )
-                        .thenSend(s -> FINISHING_COMMAND)
+                            .compensateBy(s -> SECOND_COMMAND.COMPENSATION)
+                        .thenSend(s -> FINISHING_COMMAND.COMMAND)
                             .on(FinishingCommandSuccessfulResponse.class, success())
                             .on(FinishingCommandErrorResponse.class, failureWithRetry())
                         .done();
@@ -98,7 +90,7 @@ class DefaultBusinessFlowProvisionerITTest {
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenFlowIsInitiatedByInitEvent();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(REQUESTED_DATA));
+        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow();
     }
 
@@ -107,13 +99,13 @@ class DefaultBusinessFlowProvisionerITTest {
     void successfulFlowPass_forLoadedInProgressBusinessFlowResumedAfterInitEventHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND_SUCCESSFUL_RESPONSE, normalFlowAt(STATE_INDEX_AFTER_INIT_EVENT_HANDLED), TestState.noCommandHandled());
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(INIT_EVENT_HANDLED_STATE_INDEX), TestState.noCommandHandled());
         fixture.givenQueryForDataReturnsResponseWithRequestedData();
         fixture.givenSecondCommandReturnsSuccessfulResponse();
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenFirstCommandSuccessfulResponseIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(REQUESTED_DATA));
+        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithFistCommandSuccessfulResponse();
     }
 
@@ -122,13 +114,13 @@ class DefaultBusinessFlowProvisionerITTest {
     void successfulFlowPass_forLoadedInProgressBusinessFlowAfterFistCommandHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(REQUESTED_DATA_RETURNED_RESPONSE, normalFlowAt(STATE_INDEX_AFTER_FIRST_COMMAND_HANDLED),
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(QUERY_FOR_DATA.RETURNED_RESPONSE, normalFlowAt(FIRST_COMMAND_HANDLED_STATE_INDEX),
                 TestState.onlyFistCommandHandled());
         fixture.givenSecondCommandReturnsSuccessfulResponse();
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenRequestedDataIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(REQUESTED_DATA));
+        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithRequestedDataResponse();
     }
 
@@ -137,12 +129,12 @@ class DefaultBusinessFlowProvisionerITTest {
     void successfulFlowPass_forLoadedInProgressBusinessFlowResumedAfterRequestedDataIsHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(SECOND_COMMAND_SUCCESSFUL_RESPONSE, normalFlowAt(STATE_INDEX_AFTER_REQUESTED_DATA_HANDLED),
-                TestState.fistCommandHandledAndRequestedDataIs(REQUESTED_DATA));
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(SECOND_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(QUERY_FOR_DATA_HANDLED_STATE_INDEX),
+                TestState.fistCommandHandledAndRequestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA));
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenSecondCommandSuccessfulResponseIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(REQUESTED_DATA));
+        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithSecondCommandSuccessfulResponse(); ;
     }
 
@@ -151,7 +143,7 @@ class DefaultBusinessFlowProvisionerITTest {
     void compensatedFlow_whenErrorOccursAtSomePointOfBuisnessFlow_allPreviousCompensableStatesAreCompensated() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND_SUCCESSFUL_RESPONSE, normalFlowAt(STATE_INDEX_AFTER_INIT_EVENT_HANDLED), TestState.noCommandHandled());
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(INIT_EVENT_HANDLED_STATE_INDEX), TestState.noCommandHandled());
         fixture.givenQueryForDataReturnsResponseWithRequestedData();
         fixture.givenSecondCommandReturnsErrorResponse();
         fixture.givenSecondCommandCompensationSucceeds();
@@ -159,24 +151,12 @@ class DefaultBusinessFlowProvisionerITTest {
         fixture.givenInitEventCompensationSucceeds();
         fixture.whenFirstCommandSuccessfulResponseIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.stateStartedOnFirstCommandCompensatedOnSecondWithRequestedDataSetWith(REQUESTED_DATA));
+        fixture.thenFinalStateIs(TestState.stateStartedOnFirstCommandCompensatedOnSecondWithRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
         fixture.thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnSecondCommand();
     }
 
     private static class Fixture {
         private static final String COMMAND_RESPONSE_CHANNEL_NAME = "response_channel_name";
-        private static final Class<BaseTestEvent> EVENT_KIND = BaseTestEvent.class;
-        private static final TestInitEvent INIT_EVENT = new TestInitEvent();
-        private static final FinishingCommandErrorResponse FINISHING_COMMAND_ERROR_RESPONSE =
-                new FinishingCommandErrorResponse(UUID.randomUUID());
-        private static final SecondCommandErrorResponse SECOND_COMMAND_ERROR_RESPONSE =
-                new SecondCommandErrorResponse(UUID.randomUUID());
-        private static final CompensationCommandSucceededResponse SECOND_COMMAND_COMPENSATION_SUCCEEDED_RESPONSE =
-                new CompensationCommandSucceededResponse(UUID.randomUUID());
-        private static final CompensationCommandSucceededResponse FIRST_COMMAND_COMPENSATION_SUCCEEDED_RESPONSE =
-                new CompensationCommandSucceededResponse(UUID.randomUUID());
-        private static final CompensationCommandSucceededResponse INIT_EVENT_COMPENSATION_SUCCEEDED_RESPONSE =
-                new CompensationCommandSucceededResponse(UUID.randomUUID());
 
         private final BusinessFlowDefinition<TestInitEvent, TestState> businessFlowDefinition;
 
@@ -198,7 +178,7 @@ class DefaultBusinessFlowProvisionerITTest {
             eventListenerBuilder = new EventListenerBuilder(eventListenerFactory);
 
             flowProvisionerConfig = new BusinessFlowProvisionerConfig<>(
-                    COMMAND_RESPONSE_CHANNEL_NAME, EVENT_KIND, INIT_EVENT.getClass());
+                    COMMAND_RESPONSE_CHANNEL_NAME, EVENT_FAMILY, INIT_EVENT.EVENT.getClass());
 
             businessFlowProvisioner = new DefaultBusinessFlowProvisioner<>(
                     eventListenerBuilder,
@@ -218,17 +198,17 @@ class DefaultBusinessFlowProvisionerITTest {
             commandResponseChannelMock =
                     CommandResponseChannelMock.mockCommandResponseChannel(
                             COMMAND_RESPONSE_CHANNEL_NAME, commandChannelFactory,
-                            allowedFlowFinishedResponses(FINISHING_COMMAND_SUCCESSFUL_RESPONSE, INIT_EVENT_COMPENSATION_SUCCEEDED_RESPONSE)
+                            allowedFlowFinishedResponses(FINISHING_COMMAND.SUCCESSFUL_RESPONSE, INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE)
                     );
         }
 
         private void mockFlowStateHandlerToNotifyAboutPublishedCommands() {
             willAnswer(this::notifyCommandSent)
                     .given(flowStateHandler)
-                    .createNewState(any(StateEnvelope.class), any(Command.class));
+                    .createNewState(anyStateEnvelope(), any(Command.class));
             willAnswer(this::notifyCommandSent)
                     .given(flowStateHandler)
-                    .updateState(any(StateEnvelope.class), any(Command.class));
+                    .updateState(anyStateEnvelope(), any(Command.class));
         }
 
         private Void notifyCommandSent(InvocationOnMock invocationOnMock) {
@@ -241,7 +221,7 @@ class DefaultBusinessFlowProvisionerITTest {
 
         private void mockEventListenerFactoryToCaptureEventListener() {
             EventListener<TestInitEvent> eventListener = mock(EventListener.class);
-            given(eventListenerFactory.<TestInitEvent>listenToEventsOfKind(EVENT_KIND)).willReturn(completedFuture(eventListener));
+            given(eventListenerFactory.<TestInitEvent>listenToEventsOfKind(EVENT_FAMILY)).willReturn(completedFuture(eventListener));
             willDoNothing().given(eventListener).onEvent(initEventCaptor.capture());
         }
 
@@ -251,39 +231,39 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void givenFirstCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(FIRST_COMMAND, thenRespondWith(FIRST_COMMAND_SUCCESSFUL_RESPONSE));
+            commandResponseChannelMock.when(FIRST_COMMAND.COMMAND, thenRespondWith(FIRST_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenQueryForDataReturnsResponseWithRequestedData() {
-            commandResponseChannelMock.when(QUERY_FOR_DATA, thenRespondWith(REQUESTED_DATA_RETURNED_RESPONSE));
+            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY, thenRespondWith(QUERY_FOR_DATA.RETURNED_RESPONSE));
         }
 
         void givenSecondCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(SECOND_COMMAND, thenRespondWith(SECOND_COMMAND_SUCCESSFUL_RESPONSE));
+            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND, thenRespondWith(SECOND_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenSecondCommandReturnsErrorResponse() {
-            commandResponseChannelMock.when(SECOND_COMMAND, thenRespondWith(SECOND_COMMAND_ERROR_RESPONSE));
+            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND, thenRespondWith(SECOND_COMMAND.ERROR_RESPONSE));
         }
 
         void givenFinalizingCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(FINISHING_COMMAND, thenRespondWith(FINISHING_COMMAND_SUCCESSFUL_RESPONSE));
+            commandResponseChannelMock.when(FINISHING_COMMAND.COMMAND, thenRespondWith(FINISHING_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenSecondCommandCompensationSucceeds() {
-            commandResponseChannelMock.when(SECOND_COMMAND_COMPENSATION, thenRespondWith(SECOND_COMMAND_COMPENSATION_SUCCEEDED_RESPONSE));
+            commandResponseChannelMock.when(SECOND_COMMAND.COMPENSATION, thenRespondWith(SECOND_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void givenFirstCommandCompensationSucceeds() {
-            commandResponseChannelMock.when(FIRST_COMMAND_COMPENSATION, thenRespondWith(FIRST_COMMAND_COMPENSATION_SUCCEEDED_RESPONSE));
+            commandResponseChannelMock.when(FIRST_COMMAND.COMPENSATION, thenRespondWith(FIRST_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void givenInitEventCompensationSucceeds() {
-            commandResponseChannelMock.when(INIT_EVENT_COMPENSATION, thenRespondWith(INIT_EVENT_COMPENSATION_SUCCEEDED_RESPONSE));
+            commandResponseChannelMock.when(INIT_EVENT.COMPENSATION_COMMAND, thenRespondWith(INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void whenFlowIsInitiatedByInitEvent() {
-            initEventCaptor.getValue().accept(INIT_EVENT);
+            initEventCaptor.getValue().accept(INIT_EVENT.EVENT);
         }
 
         void thenWaitUntilFlowIsFinished() {
@@ -299,90 +279,95 @@ class DefaultBusinessFlowProvisionerITTest {
         void thenFlowStateHandlerWasCalledAsForSuccessfulFlow() {
             then(flowStateHandler).should(never()).readFlowState(any(UUID.class));
             then(flowStateHandler).should()
-                    .createNewState(argThat(matchesStateWithIndexOf(0)), eq(FIRST_COMMAND));
+                    .createNewState(argThat(matchesStateWithIndexOf(FIRST_COMMAND_STATE_INDEX)), eq(FIRST_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(1)), eq(QUERY_FOR_DATA));
+                    .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(2)), eq(SECOND_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(SECOND_COMMAND_STATE_INDEX)), eq(SECOND_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(3)), eq(FINISHING_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_STATE_INDEX)), eq(FINISHING_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .finalizeState(argThat(matchesStateWithIndexOf(4)));
+                    .finalizeState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_HANDLED_STATE_INDEX)));
         }
 
         void thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithFistCommandSuccessfulResponse() {
-            then(flowStateHandler).should().readFlowState(FIRST_COMMAND_SUCCESSFUL_RESPONSE.getCorrelationId());
+            then(flowStateHandler).should().readFlowState(FIRST_COMMAND.SUCCESSFUL_RESPONSE.getCorrelationId());
             then(flowStateHandler).should(never())
-                    .createNewState(any(StateEnvelope.class), any(Command.class));
+                    .createNewState(anyStateEnvelope(), any(Command.class));
             then(flowStateHandler).should(never())
-                    .updateState(argThat(matchesStateWithIndexOf(0)), eq(FIRST_COMMAND));
+                    .updateState(anyStateEnvelope(), eq(FIRST_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(1)), eq(QUERY_FOR_DATA));
+                    .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(2)), eq(SECOND_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(SECOND_COMMAND_STATE_INDEX)), eq(SECOND_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(3)), eq(FINISHING_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_STATE_INDEX)), eq(FINISHING_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .finalizeState(argThat(matchesStateWithIndexOf(4)));
+                    .finalizeState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_HANDLED_STATE_INDEX)));
+        }
+
+        @SuppressWarnings("unchecked")
+        private static StateEnvelope<TestState> anyStateEnvelope() {
+            return any(StateEnvelope.class);
         }
 
         void thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithRequestedDataResponse() {
-            then(flowStateHandler).should().readFlowState(REQUESTED_DATA_RETURNED_RESPONSE.getCorrelationId());
+            then(flowStateHandler).should().readFlowState(QUERY_FOR_DATA.RETURNED_RESPONSE.getCorrelationId());
             then(flowStateHandler).should(never())
-                    .createNewState(any(StateEnvelope.class), any(Command.class));
+                    .createNewState(anyStateEnvelope(), any(Command.class));
             then(flowStateHandler).should(never())
-                    .updateState(argThat(matchesStateWithIndexOf(0)), eq(FIRST_COMMAND));
+                    .updateState(anyStateEnvelope(), eq(FIRST_COMMAND.COMMAND));
             then(flowStateHandler).should(never())
-                    .updateState(argThat(matchesStateWithIndexOf(1)), eq(QUERY_FOR_DATA));
+                    .updateState(anyStateEnvelope(), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(2)), eq(SECOND_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(SECOND_COMMAND_STATE_INDEX)), eq(SECOND_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(3)), eq(FINISHING_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_STATE_INDEX)), eq(FINISHING_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .finalizeState(argThat(matchesStateWithIndexOf(4)));
+                    .finalizeState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_HANDLED_STATE_INDEX)));
         }
 
         void thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithSecondCommandSuccessfulResponse() {
-            then(flowStateHandler).should().readFlowState(SECOND_COMMAND_SUCCESSFUL_RESPONSE.getCorrelationId());
+            then(flowStateHandler).should().readFlowState(SECOND_COMMAND.SUCCESSFUL_RESPONSE.getCorrelationId());
             then(flowStateHandler).should(never())
-                    .createNewState(any(StateEnvelope.class), any(Command.class));
+                    .createNewState(anyStateEnvelope(), any(Command.class));
             then(flowStateHandler).should(never())
-                    .updateState(argThat(matchesStateWithIndexOf(0)), eq(FIRST_COMMAND));
+                    .updateState(anyStateEnvelope(), eq(FIRST_COMMAND.COMMAND));
             then(flowStateHandler).should(never())
-                    .updateState(argThat(matchesStateWithIndexOf(1)), eq(QUERY_FOR_DATA));
+                    .updateState(anyStateEnvelope(), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should(never())
-                    .updateState(argThat(matchesStateWithIndexOf(2)), eq(SECOND_COMMAND));
+                    .updateState(anyStateEnvelope(), eq(SECOND_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(3)), eq(FINISHING_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_STATE_INDEX)), eq(FINISHING_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .finalizeState(argThat(matchesStateWithIndexOf(4)));
+                    .finalizeState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_HANDLED_STATE_INDEX)));
         }
 
         void thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnSecondCommand() {
-            then(flowStateHandler).should().readFlowState(FIRST_COMMAND_SUCCESSFUL_RESPONSE.getCorrelationId());
+            then(flowStateHandler).should().readFlowState(FIRST_COMMAND.SUCCESSFUL_RESPONSE.getCorrelationId());
             then(flowStateHandler).should(never())
-                    .createNewState(any(StateEnvelope.class), any(Command.class));
+                    .createNewState(anyStateEnvelope(), any(Command.class));
             then(flowStateHandler).should(never())
-                    .updateState(any(StateEnvelope.class), eq(FIRST_COMMAND));
+                    .updateState(anyStateEnvelope(), eq(FIRST_COMMAND.COMMAND));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(1)), eq(QUERY_FOR_DATA));
+                    .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(2)), eq(SECOND_COMMAND));
+                    .updateState(argThat(matchesStateWithIndexOf(SECOND_COMMAND_STATE_INDEX)), eq(SECOND_COMMAND.COMMAND));
             then(flowStateHandler).should(never())
-                    .updateState(any(StateEnvelope.class), eq(FINISHING_COMMAND));
+                    .updateState(anyStateEnvelope(), eq(FINISHING_COMMAND.COMMAND));
             then(flowStateHandler).should(never())
-                    .updateState(any(StateEnvelope.class), eq(SECOND_COMMAND_COMPENSATION));
+                    .updateState(anyStateEnvelope(), eq(SECOND_COMMAND.COMPENSATION));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(0)), eq(FIRST_COMMAND_COMPENSATION));
+                    .updateState(argThat(matchesStateWithIndexOf(FIRST_COMMAND_STATE_INDEX)), eq(FIRST_COMMAND.COMPENSATION));
             then(flowStateHandler).should()
-                    .updateState(argThat(matchesStateWithIndexOf(-1)), eq(INIT_EVENT_COMPENSATION));
+                    .updateState(argThat(matchesStateWithIndexOf(INIT_EVENT_STATE_INDEX)), eq(INIT_EVENT.COMPENSATION_COMMAND));
             then(flowStateHandler).should()
-                    .finalizeState(argThat(matchesStateWithIndexOf(-2)));
+                    .finalizeState(argThat(matchesStateWithIndexOf(FLOW_FULLY_COMPENSATED_STATE_INDEX)));
         }
 
         private ArgumentMatcher<StateEnvelope<TestState>> matchesStateWithIndexOf(int stateIndex) {
             return actualEnvelope -> actualEnvelope.getStateIndex() == stateIndex &&
-                                        actualEnvelope.getState() == actualFlowState;
+                                        actualEnvelope.getState().equals(actualFlowState);
         }
 
         void givenCurrentFlowStateIsReadFromFlowStateHandler(Response onGivenCommandResponse,
@@ -394,168 +379,15 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void whenFirstCommandSuccessfulResponseIsReceived() {
-            commandResponseChannelMock.acceptNewCommandResponseJustReceived(FIRST_COMMAND_SUCCESSFUL_RESPONSE);
+            commandResponseChannelMock.acceptNewCommandResponseJustReceived(FIRST_COMMAND.SUCCESSFUL_RESPONSE);
         }
 
         void whenSecondCommandSuccessfulResponseIsReceived() {
-            commandResponseChannelMock.acceptNewCommandResponseJustReceived(SECOND_COMMAND_SUCCESSFUL_RESPONSE);
+            commandResponseChannelMock.acceptNewCommandResponseJustReceived(SECOND_COMMAND.SUCCESSFUL_RESPONSE);
         }
 
         void whenRequestedDataIsReceived() {
-            commandResponseChannelMock.acceptNewCommandResponseJustReceived(REQUESTED_DATA_RETURNED_RESPONSE);
-        }
-    }
-
-    @Value
-    static class StateIndexAndCompensation {
-        private static final boolean IS_COMPENSATION_FLOW = true;
-        private static final boolean IS_NORMAL_FLOW = false;
-        private int index;
-        private boolean compensation;
-
-        static StateIndexAndCompensation normalFlowAt(int index) {
-            return new StateIndexAndCompensation(index, IS_NORMAL_FLOW);
-        }
-
-        static StateIndexAndCompensation compensationFlowAt(int index) {
-            return new StateIndexAndCompensation(index, IS_COMPENSATION_FLOW);
-        }
-    }
-
-    @ToString
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    @NoArgsConstructor(access = PRIVATE)
-    private static class TestState {
-        private final static String NO_QUERIED_DATA = null;
-
-        private boolean firstCommandHandled;
-        private boolean secondCommandHandled;
-        private boolean firstCommandCompensated;
-        private boolean secondCommandCompensated;
-        private boolean compensationInitiatedOnFistCommand;
-        private boolean compensationInitiatedOnSecondCommand;
-        private String requestedData;
-
-        static TestState bothCommandsHandledAndRequestedDataSetWith(String requestedData) {
-            return new TestState(true, true, false, false, false, false, requestedData);
-        }
-
-        static TestState onlyFistCommandHandled () {
-            return new TestState(true, false, false, false, false, false, NO_QUERIED_DATA);
-        }
-
-        static TestState fistCommandHandledAndRequestedDataIs(String requestedData) {
-            return new TestState(true, false, false, false, false, false, requestedData);
-        }
-
-        static TestState noCommandHandled() {
-            return new TestState(false, false, false, false, false, false, NO_QUERIED_DATA);
-        }
-
-        static TestState stateStartedOnFirstCommandCompensatedOnSecondWithRequestedDataSetWith(String requestedData) {
-            return new TestState(true, false, true, false, false, true, requestedData);
-        }
-
-        void firstCommandHandled() {
-            firstCommandHandled = true;
-        }
-
-        void firstCommandCompensated() {
-            firstCommandCompensated = true;
-        }
-
-        void secondCommandHandled() {
-            secondCommandHandled = true;
-        }
-
-        void secondCommandCompensated() {
-            secondCommandCompensated = true;
-        }
-
-        void requestedDataIs(String requestedData) {
-            this.requestedData = requestedData;
-        }
-
-        void compensationInitiatedOnFirstCommand() {
-            this.compensationInitiatedOnFistCommand = true;
-        }
-
-        void compensationInitiatedOnSecondCommand() {
-            this.compensationInitiatedOnSecondCommand = true;
-        }
-    }
-
-    private static class TestInitEvent extends BaseTestEvent {
-        TestInitEvent() {
-            super(BaseTestEvent.AGGREGATE_ID, BaseTestEvent.SEQUENCE_NUMBER, BaseTestEvent.GENERATED_ON);
-        }
-    }
-
-    private static class InitEventCompensationCommand extends AbstractCommand {}
-
-    @RequiredArgsConstructor(access = PROTECTED)
-    private static class TestAbstractCommandResponse implements Response {
-        private final UUID responseUuid;
-
-        @Override
-        public UUID getCorrelationId() {
-            return responseUuid;
-        }
-    }
-
-
-    private static class FirstCommand extends AbstractCommand {}
-    private static class FirstCommandCompensation extends AbstractCommand {}
-    private static class FirstCommandSuccessfulResponse extends TestAbstractCommandResponse {
-        FirstCommandSuccessfulResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-    private static class FirstCommandErrorResponse extends TestAbstractCommandResponse {
-        protected FirstCommandErrorResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-
-    private static class SecondCommand extends AbstractCommand {}
-    private static class SecondCommandCompensation extends AbstractCommand {}
-    private static class SecondCommandSuccessfulResponse extends TestAbstractCommandResponse {
-        protected SecondCommandSuccessfulResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-    private static class SecondCommandErrorResponse extends TestAbstractCommandResponse {
-        protected SecondCommandErrorResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-
-    private static class FinishingCommand extends AbstractCommand {}
-    private static class FinishingCommandSuccessfulResponse extends TestAbstractCommandResponse {
-        protected FinishingCommandSuccessfulResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-    private static class FinishingCommandErrorResponse extends TestAbstractCommandResponse {
-        protected FinishingCommandErrorResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-
-    private static class CompensationCommandSucceededResponse extends TestAbstractCommandResponse implements CompensationSucceededResponse{
-        protected CompensationCommandSucceededResponse(UUID responseUuid) {
-            super(responseUuid);
-        }
-    }
-
-    private static class QueryForData extends AbstractQuery {}
-    @Getter
-    private static class QueriedDataReturnedResponse extends AbstractResponse {
-        private final String queriedData;
-        protected QueriedDataReturnedResponse(UUID responseUuid, String queriedData) {
-            super(responseUuid);
-            this.queriedData = queriedData;
+            commandResponseChannelMock.acceptNewCommandResponseJustReceived(QUERY_FOR_DATA.RETURNED_RESPONSE);
         }
     }
 }
