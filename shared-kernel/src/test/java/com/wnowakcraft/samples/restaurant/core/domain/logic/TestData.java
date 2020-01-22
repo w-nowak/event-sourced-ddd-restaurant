@@ -28,6 +28,7 @@ public class TestData {
         static final Query QUERY = new QueryForData();
         static final String REQUESTED_DATA = "requested string data";
         static final QueriedDataReturnedResponse RETURNED_RESPONSE = new QueriedDataReturnedResponse(UUID.randomUUID(), REQUESTED_DATA);
+        static final QueriedDataErrorResponse ERROR_RESPONSE = new QueriedDataErrorResponse(UUID.randomUUID());
     }
 
     static class SECOND_COMMAND {
@@ -71,6 +72,7 @@ public class TestData {
         private boolean firstCommandCompensated;
         private boolean secondCommandCompensated;
         private boolean compensationInitiatedOnFistCommand;
+        private boolean compensationInitiatedOnQueryForData;
         private boolean compensationInitiatedOnSecondCommand;
         private String requestedData;
 
@@ -107,6 +109,12 @@ public class TestData {
             this.compensationInitiatedOnFistCommand = true;
             return this;
         }
+
+        TestState compensationInitiatedOnQueryForData() {
+            this.compensationInitiatedOnQueryForData = true;
+            return this;
+        }
+
 
         TestState compensationInitiatedOnSecondCommand() {
             this.compensationInitiatedOnSecondCommand = true;
@@ -190,6 +198,12 @@ public class TestData {
         protected QueriedDataReturnedResponse(UUID responseUuid, String queriedData) {
             super(responseUuid);
             this.queriedData = queriedData;
+        }
+    }
+
+    static class QueriedDataErrorResponse extends TestAbstractCommandResponse {
+        protected QueriedDataErrorResponse(UUID responseUuid) {
+            super(responseUuid);
         }
     }
 }

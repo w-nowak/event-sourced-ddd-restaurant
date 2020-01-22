@@ -66,6 +66,7 @@ class DefaultBusinessFlowProvisionerITTest {
                             .compensateBy(s -> FIRST_COMMAND.COMPENSATION)
                         .thenSend(s -> QUERY_FOR_DATA.QUERY)
                             .on(QueriedDataReturnedResponse.class, (resp, state) -> state.requestedDataIs(resp.getQueriedData()))
+                            .on(QueriedDataErrorResponse.class, failureWithCompensation())
                         .thenSend(s -> SECOND_COMMAND.COMMAND)
                             .on(SecondCommandSuccessfulResponse.class, (resp, state) -> state.secondCommandHandled())
                             .on(SecondCommandErrorResponse.class, failureWithCompensation((resp, state) -> state.compensationInitiatedOnSecondCommand()))
@@ -166,7 +167,7 @@ class DefaultBusinessFlowProvisionerITTest {
 
     @Test
     @Timeout(3)
-    void compensatedFlow_whenErrorOccursAtSomePointOfBuisnessFlow_allPreviousCompensableStatesAreCompensated() {
+    void compensatedFlow_whenErrorOccursAtSomePointOfBusinessFlow_onStepWithCompensation_allPreviousCompensableStatesAreCompensated() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
         fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(INIT_EVENT_HANDLED_STATE_INDEX), TestState.noCommandHandled());
@@ -185,6 +186,25 @@ class DefaultBusinessFlowProvisionerITTest {
                         .firstCommandCompensated()
         );
         fixture.thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnSecondCommand();
+    }
+
+    @Test
+    @Timeout(3)
+    void compensatedFlow_whenErrorOccursAtSomePointOfBusinessFlow_onStepWithNoCompensation_allPreviousCompensableStatesAreCompensated() {
+        fixture.givenFlowIsInitialized();
+        fixture.givenFlowIsProvisioned();
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(INIT_EVENT_HANDLED_STATE_INDEX), TestState.noCommandHandled());
+        fixture.givenQueryForDataReturnsErrorResponse();
+        fixture.givenFirstCommandCompensationSucceeds();
+        fixture.givenInitEventCompensationSucceeds();
+        fixture.whenFirstCommandSuccessfulResponseIsReceived();
+        fixture.thenWaitUntilFlowIsFinished();
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .firstCommandCompensated()
+        );
+        fixture.thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnQueryForData();
     }
 
     private static class Fixture {
@@ -268,6 +288,10 @@ class DefaultBusinessFlowProvisionerITTest {
 
         void givenQueryForDataReturnsResponseWithRequestedData() {
             commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY, thenRespondWith(QUERY_FOR_DATA.RETURNED_RESPONSE));
+        }
+
+        void givenQueryForDataReturnsErrorResponse() {
+            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY, thenRespondWith(QUERY_FOR_DATA.ERROR_RESPONSE));
         }
 
         void givenSecondCommandReturnsSuccessfulResponse() {
@@ -385,6 +409,28 @@ class DefaultBusinessFlowProvisionerITTest {
                     .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should()
                     .updateState(argThat(matchesStateWithIndexOf(SECOND_COMMAND_STATE_INDEX)), eq(SECOND_COMMAND.COMMAND));
+            then(flowStateHandler).should(never())
+                    .updateState(anyStateEnvelope(), eq(FINISHING_COMMAND.COMMAND));
+            then(flowStateHandler).should(never())
+                    .updateState(anyStateEnvelope(), eq(SECOND_COMMAND.COMPENSATION));
+            then(flowStateHandler).should()
+                    .updateState(argThat(matchesStateWithIndexOf(FIRST_COMMAND_STATE_INDEX)), eq(FIRST_COMMAND.COMPENSATION));
+            then(flowStateHandler).should()
+                    .updateState(argThat(matchesStateWithIndexOf(INIT_EVENT_STATE_INDEX)), eq(INIT_EVENT.COMPENSATION_COMMAND));
+            then(flowStateHandler).should()
+                    .finalizeState(argThat(matchesStateWithIndexOf(FLOW_FULLY_COMPENSATED_STATE_INDEX)));
+        }
+
+        void thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnQueryForData() {
+            then(flowStateHandler).should().readFlowState(FIRST_COMMAND.SUCCESSFUL_RESPONSE.getCorrelationId());
+            then(flowStateHandler).should(never())
+                    .createNewState(anyStateEnvelope(), any(Command.class));
+            then(flowStateHandler).should(never())
+                    .updateState(anyStateEnvelope(), eq(FIRST_COMMAND.COMMAND));
+            then(flowStateHandler).should()
+                    .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
+            then(flowStateHandler).should(never())
+                    .updateState(anyStateEnvelope(), eq(SECOND_COMMAND.COMMAND));
             then(flowStateHandler).should(never())
                     .updateState(anyStateEnvelope(), eq(FINISHING_COMMAND.COMMAND));
             then(flowStateHandler).should(never())
