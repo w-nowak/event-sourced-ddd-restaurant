@@ -167,7 +167,7 @@ class DefaultBusinessFlowProvisionerITTest {
 
     @Test
     @Timeout(3)
-    void compensatedFlow_whenErrorOccursAtSomePointOfBusinessFlow_onStepWithCompensation_allPreviousCompensableStatesAreCompensated() {
+    void compensatedFlow_whenErrorOccursAtSomePointOfResumedBusinessFlow_onStepWithCompensation_allPreviousCompensableStatesAreCompensated() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
         fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(INIT_EVENT_HANDLED_STATE_INDEX), TestState.noCommandHandled());
@@ -185,26 +185,26 @@ class DefaultBusinessFlowProvisionerITTest {
                         .compensationInitiatedOnSecondCommand()
                         .firstCommandCompensated()
         );
-        fixture.thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnSecondCommand();
+        fixture.thenFlowStateHandlerWasCalledAsForCompensatedResumedFlow_whereCompensationStartedOnSecondCommand();
     }
 
     @Test
     @Timeout(3)
-    void compensatedFlow_whenErrorOccursAtSomePointOfBusinessFlow_onStepWithNoCompensation_allPreviousCompensableStatesAreCompensated() {
+    void compensatedFlow_whenErrorOccursAtSomePointOfNewBusinessFlow_onStepWithNoCompensation_allPreviousCompensableStatesAreCompensated() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(FIRST_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(INIT_EVENT_HANDLED_STATE_INDEX), TestState.noCommandHandled());
+        fixture.givenFirstCommandReturnsSuccessfulResponse();
         fixture.givenQueryForDataReturnsErrorResponse();
         fixture.givenFirstCommandCompensationSucceeds();
         fixture.givenInitEventCompensationSucceeds();
-        fixture.whenFirstCommandSuccessfulResponseIsReceived();
+        fixture.whenFlowIsInitiatedByInitEvent();
         fixture.thenWaitUntilFlowIsFinished();
         fixture.thenFinalStateIs(
                 TestState.noCommandHandled()
                         .firstCommandHandled()
                         .firstCommandCompensated()
         );
-        fixture.thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnQueryForData();
+        fixture.thenFlowStateHandlerWasCalledAsForCompensatedNewFlow_whereCompensationStartedOnQueryForData();
     }
 
     private static class Fixture {
@@ -399,7 +399,7 @@ class DefaultBusinessFlowProvisionerITTest {
                     .finalizeState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_HANDLED_STATE_INDEX)));
         }
 
-        void thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnSecondCommand() {
+        void thenFlowStateHandlerWasCalledAsForCompensatedResumedFlow_whereCompensationStartedOnSecondCommand() {
             then(flowStateHandler).should().readFlowState(FIRST_COMMAND.SUCCESSFUL_RESPONSE.getCorrelationId());
             then(flowStateHandler).should(never())
                     .createNewState(anyStateEnvelope(), any(Command.class));
@@ -421,12 +421,10 @@ class DefaultBusinessFlowProvisionerITTest {
                     .finalizeState(argThat(matchesStateWithIndexOf(FLOW_FULLY_COMPENSATED_STATE_INDEX)));
         }
 
-        void thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnQueryForData() {
-            then(flowStateHandler).should().readFlowState(FIRST_COMMAND.SUCCESSFUL_RESPONSE.getCorrelationId());
-            then(flowStateHandler).should(never())
-                    .createNewState(anyStateEnvelope(), any(Command.class));
-            then(flowStateHandler).should(never())
-                    .updateState(anyStateEnvelope(), eq(FIRST_COMMAND.COMMAND));
+        void thenFlowStateHandlerWasCalledAsForCompensatedNewFlow_whereCompensationStartedOnQueryForData() {
+            then(flowStateHandler).should(never()).readFlowState(any(UUID.class));
+            then(flowStateHandler).should()
+                    .createNewState(argThat(matchesStateWithIndexOf(FIRST_COMMAND_STATE_INDEX)), eq(FIRST_COMMAND.COMMAND));
             then(flowStateHandler).should()
                     .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
             then(flowStateHandler).should(never())
