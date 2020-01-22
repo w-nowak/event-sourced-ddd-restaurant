@@ -90,7 +90,12 @@ class DefaultBusinessFlowProvisionerITTest {
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenFlowIsInitiatedByInitEvent();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .secondCommandHandled()
+                        .requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+        );
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow();
     }
 
@@ -105,7 +110,12 @@ class DefaultBusinessFlowProvisionerITTest {
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenFirstCommandSuccessfulResponseIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .secondCommandHandled()
+                        .requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+        );
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithFistCommandSuccessfulResponse();
     }
 
@@ -114,13 +124,21 @@ class DefaultBusinessFlowProvisionerITTest {
     void successfulFlowPass_forLoadedInProgressBusinessFlowAfterFistCommandHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(QUERY_FOR_DATA.RETURNED_RESPONSE, normalFlowAt(FIRST_COMMAND_HANDLED_STATE_INDEX),
-                TestState.onlyFistCommandHandled());
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(
+                QUERY_FOR_DATA.RETURNED_RESPONSE,
+                normalFlowAt(FIRST_COMMAND_HANDLED_STATE_INDEX),
+                TestState.noCommandHandled().firstCommandHandled()
+        );
         fixture.givenSecondCommandReturnsSuccessfulResponse();
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenRequestedDataIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .secondCommandHandled()
+                        .requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+        );
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithRequestedDataResponse();
     }
 
@@ -129,12 +147,20 @@ class DefaultBusinessFlowProvisionerITTest {
     void successfulFlowPass_forLoadedInProgressBusinessFlowResumedAfterRequestedDataIsHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
-        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(SECOND_COMMAND.SUCCESSFUL_RESPONSE, normalFlowAt(QUERY_FOR_DATA_HANDLED_STATE_INDEX),
-                TestState.fistCommandHandledAndRequestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA));
+        fixture.givenCurrentFlowStateIsReadFromFlowStateHandler(
+                SECOND_COMMAND.SUCCESSFUL_RESPONSE,
+                normalFlowAt(QUERY_FOR_DATA_HANDLED_STATE_INDEX),
+                TestState.noCommandHandled().firstCommandHandled().requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+        );
         fixture.givenFinalizingCommandReturnsSuccessfulResponse();
         fixture.whenSecondCommandSuccessfulResponseIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.bothCommandsHandledAndRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .secondCommandHandled()
+                        .requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+        );
         fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_startingWithSecondCommandSuccessfulResponse(); ;
     }
 
@@ -151,7 +177,13 @@ class DefaultBusinessFlowProvisionerITTest {
         fixture.givenInitEventCompensationSucceeds();
         fixture.whenFirstCommandSuccessfulResponseIsReceived();
         fixture.thenWaitUntilFlowIsFinished();
-        fixture.thenFinalStateIs(TestState.stateStartedOnFirstCommandCompensatedOnSecondWithRequestedDataSetWith(QUERY_FOR_DATA.REQUESTED_DATA));
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+                        .compensationInitiatedOnSecondCommand()
+                        .firstCommandCompensated()
+        );
         fixture.thenFlowStateHandlerWasCalledAsForCompensatedFlow_whereCompensationStartedOnSecondCommand();
     }
 

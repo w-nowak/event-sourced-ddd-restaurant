@@ -66,18 +66,6 @@ public class TestData {
     @EqualsAndHashCode
     @NoArgsConstructor(access = PRIVATE)
     static class TestState {
-        private final static String NO_QUERIED_DATA = null;
-        private static final boolean FIRST_COMMAND_HANDLED = true;
-        private static final boolean FIRST_COMMAND_NOT_HANDLED = false;
-        private static final boolean SECOND_COMMAND_HANDLED = true;
-        private static final boolean SECOND_COMMAND_NOT_HANDLED = false;
-        private static final boolean FIRST_COMMAND_COMPENSATED = true;
-        private static final boolean FIRST_COMMAND_NOT_COMPENSATED = false;
-        private static final boolean SECOND_COMMAND_NOT_COMPENSATED = false;
-        public static final boolean COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND = false;
-        private static final boolean COMPENSATION_INITIATED_ON_SECOND_COMMAND = true;
-        private static final boolean COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND = false;
-
         private boolean firstCommandHandled;
         private boolean secondCommandHandled;
         private boolean firstCommandCompensated;
@@ -86,52 +74,43 @@ public class TestData {
         private boolean compensationInitiatedOnSecondCommand;
         private String requestedData;
 
-        static TestState bothCommandsHandledAndRequestedDataSetWith(String requestedData) {
-            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, requestedData);
-        }
-
-        static TestState onlyFistCommandHandled () {
-            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, NO_QUERIED_DATA);
-        }
-
-        static TestState fistCommandHandledAndRequestedDataIs(String requestedData) {
-            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, requestedData);
-        }
-
         static TestState noCommandHandled() {
-            return new TestState(FIRST_COMMAND_NOT_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_NOT_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_NOT_INITIATED_ON_SECOND_COMMAND, NO_QUERIED_DATA);
+            return new TestState();
         }
 
-        static TestState stateStartedOnFirstCommandCompensatedOnSecondWithRequestedDataSetWith(String requestedData) {
-            return new TestState(FIRST_COMMAND_HANDLED, SECOND_COMMAND_NOT_HANDLED, FIRST_COMMAND_COMPENSATED, SECOND_COMMAND_NOT_COMPENSATED, COMPENSATION_NOT_INITIATED_ON_FIST_COMMAND, COMPENSATION_INITIATED_ON_SECOND_COMMAND, requestedData);
-        }
-
-        void firstCommandHandled() {
+        TestState firstCommandHandled() {
             firstCommandHandled = true;
+            return this;
         }
 
-        void firstCommandCompensated() {
+        TestState firstCommandCompensated() {
             firstCommandCompensated = true;
+            return this;
         }
 
-        void secondCommandHandled() {
+        TestState secondCommandHandled() {
             secondCommandHandled = true;
+            return this;
         }
 
-        void secondCommandCompensated() {
+        TestState secondCommandCompensated() {
             secondCommandCompensated = true;
+            return this;
         }
 
-        void requestedDataIs(String requestedData) {
+        TestState requestedDataIs(String requestedData) {
             this.requestedData = requestedData;
+            return this;
         }
 
-        void compensationInitiatedOnFirstCommand() {
+        TestState compensationInitiatedOnFirstCommand() {
             this.compensationInitiatedOnFistCommand = true;
+            return this;
         }
 
-        void compensationInitiatedOnSecondCommand() {
+        TestState compensationInitiatedOnSecondCommand() {
             this.compensationInitiatedOnSecondCommand = true;
+            return this;
         }
     }
 
