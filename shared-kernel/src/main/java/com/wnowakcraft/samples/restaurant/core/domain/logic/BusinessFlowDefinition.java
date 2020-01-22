@@ -38,6 +38,10 @@ public class BusinessFlowDefinition<E extends Event, S> {
         return consumer.getClass() == MarkerFailureWithCompensateConsumer.class;
     }
 
+    public static boolean isRetryMarkerConsumer(BiConsumer<?, ?> consumer) {
+        return consumer.getClass() == MarkerFailureWithRetryConsumer.class;
+    }
+
     public static boolean isNotMarkerConsumer(BiConsumer<?, ?> consumer) {
         return !MarkerConsumer.class.isAssignableFrom(consumer.getClass());
     }

@@ -1,11 +1,13 @@
 package com.wnowakcraft.samples.restaurant.core.infrastructure.messaging;
 
+import com.google.common.collect.ImmutableList;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 import com.wnowakcraft.samples.restaurant.core.utils.AsyncTestSupportSupport;
 import com.wnowakcraft.samples.restaurant.core.utils.AsyncTestWaitSupport;
 import lombok.RequiredArgsConstructor;
 import org.mockito.ArgumentCaptor;
+import org.mockito.BDDMockito;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
+import static java.util.Collections.singletonList;
 import static lombok.AccessLevel.PRIVATE;
 import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.mock;
@@ -46,8 +49,22 @@ public class CommandResponseChannelMock {
     }
 
     public CommandResponseChannelMock when(Command commandIssued, ThenRespondWith thenRespondWith) {
-        willAnswer(invocationOnMock -> delegateToAsyncCommandResponse(thenRespondWith.commandResponse))
-                .given(sentCommandNotifierMock).notifyCommandSent(commandIssued);
+        BDDMockito.BDDStubber stubber = null;
+        var commandResponseIterator = thenRespondWith.commandResponses.iterator();
+
+        if(commandResponseIterator.hasNext()) {
+            var commandResponse = commandResponseIterator.next();
+            stubber = willAnswer(invocationOnMock -> delegateToAsyncCommandResponse(commandResponse));
+        }
+
+        while(commandResponseIterator.hasNext()) {
+            var commandResponse = commandResponseIterator.next();
+            stubber = stubber.willAnswer(invocationOnMock -> delegateToAsyncCommandResponse(commandResponse));
+        }
+
+        if(stubber != null) {
+            stubber.given(sentCommandNotifierMock).notifyCommandSent(commandIssued);
+        }
 
         return this;
     }
@@ -78,10 +95,15 @@ public class CommandResponseChannelMock {
 
     @RequiredArgsConstructor(access = PRIVATE)
     public static class ThenRespondWith {
-        private final Response commandResponse;
+        private final Collection<Response> commandResponses;
 
         public static ThenRespondWith thenRespondWith(Response commandResponse) {
-            return new ThenRespondWith(commandResponse);
+            return new ThenRespondWith(singletonList(commandResponse));
+        }
+
+        public static ThenRespondWith thenRespondInSequenceWith(Response commandResponse1, Response... commandOtherResponses) {
+            var allResponses = ImmutableList.<Response>builder().add(commandResponse1).add(commandOtherResponses).build();
+            return new ThenRespondWith(allResponses);
         }
     }
 

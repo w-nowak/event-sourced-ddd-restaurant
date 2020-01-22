@@ -65,7 +65,7 @@ public class BusinessFlowRunner <E extends Event, S> {
 
 
     @RequiredArgsConstructor
-    public static class BusinessFlowRunnerBuilder<E extends Event, S>  {
+    public static class BusinessFlowRunnerBuilder<E extends Event, S> {
         private final BusinessFlowHandler<E, S> businessFlowHandler;
         private Function<UUID, StateEnvelope<S>> flowStateProvider;
         private BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
@@ -150,7 +150,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         private Consumer<BiConsumer<Message, S>> handleResponse(Response commandResponse) {
             return responseConsumer -> {
 
-                if (BusinessFlowDefinition.isNotMarkerConsumer(responseConsumer) ||
+                if(BusinessFlowDefinition.isNotMarkerConsumer(responseConsumer) ||
                         BusinessFlowDefinition.isCompensateMarkerConsumer(responseConsumer)) {
                     responseConsumer.accept(commandResponse, flowCurrentState.getState());
                 }
@@ -159,7 +159,10 @@ public class BusinessFlowRunner <E extends Event, S> {
                     flowCurrentState = flowCurrentState.asCompensation();
                 }
 
-                advanceFlowCurrentState();
+                if(!BusinessFlowDefinition.isRetryMarkerConsumer(responseConsumer)) {
+                    advanceFlowCurrentState();
+                }
+
             };
         }
 
@@ -192,7 +195,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         private Optional<Command> getFollowingCommand() {
-            if(isFlowComplete()){
+            if (isFlowComplete()) {
                 return empty();
             }
 

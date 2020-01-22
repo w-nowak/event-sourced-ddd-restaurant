@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.StateIndexAndCompensation.normalFlowAt;
+import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.ThenRespondWith.thenRespondInSequenceWith;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.ThenRespondWith.thenRespondWith;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.allowedFlowFinishedResponses;
 import static java.util.concurrent.CompletableFuture.completedFuture;
@@ -207,6 +208,26 @@ class DefaultBusinessFlowProvisionerITTest {
         fixture.thenFlowStateHandlerWasCalledAsForCompensatedNewFlow_whereCompensationStartedOnQueryForData();
     }
 
+    @Test
+    @Timeout(3)
+    void successfulFlowPass_withRetriesOnRetryableStep_whenRetryUltimatelySucceeds_andAllSuccessfulResponsesReturned() {
+        fixture.givenFlowIsInitialized();
+        fixture.givenFlowIsProvisioned();
+        fixture.givenFirstCommandReturnsSuccessfulResponse();
+        fixture.givenQueryForDataReturnsResponseWithRequestedData();
+        fixture.givenSecondCommandReturnsSuccessfulResponse();
+        fixture.givenFinalizingCommandReturnsSuccessfulResponseOnThirdRetry();
+        fixture.whenFlowIsInitiatedByInitEvent();
+        fixture.thenWaitUntilFlowIsFinished();
+        fixture.thenFinalStateIs(
+                TestState.noCommandHandled()
+                        .firstCommandHandled()
+                        .secondCommandHandled()
+                        .requestedDataIs(QUERY_FOR_DATA.REQUESTED_DATA)
+        );
+        fixture.thenFlowStateHandlerWasCalledAsForSuccessfulFlow_withThreeRetriesOnFinalizingCommand_andAllOtherCommandsSuccessfulResponses();
+    }
+
     private static class Fixture {
         private static final String COMMAND_RESPONSE_CHANNEL_NAME = "response_channel_name";
 
@@ -304,6 +325,17 @@ class DefaultBusinessFlowProvisionerITTest {
 
         void givenFinalizingCommandReturnsSuccessfulResponse() {
             commandResponseChannelMock.when(FINISHING_COMMAND.COMMAND, thenRespondWith(FINISHING_COMMAND.SUCCESSFUL_RESPONSE));
+        }
+
+        void givenFinalizingCommandReturnsSuccessfulResponseOnThirdRetry() {
+            commandResponseChannelMock.when(
+                    FINISHING_COMMAND.COMMAND,
+                    thenRespondInSequenceWith(
+                            FINISHING_COMMAND.ERROR_RESPONSE,
+                            FINISHING_COMMAND.ERROR_RESPONSE,
+                            FINISHING_COMMAND.ERROR_RESPONSE,
+                            FINISHING_COMMAND.SUCCESSFUL_RESPONSE)
+            );
         }
 
         void givenSecondCommandCompensationSucceeds() {
@@ -439,6 +471,20 @@ class DefaultBusinessFlowProvisionerITTest {
                     .updateState(argThat(matchesStateWithIndexOf(INIT_EVENT_STATE_INDEX)), eq(INIT_EVENT.COMPENSATION_COMMAND));
             then(flowStateHandler).should()
                     .finalizeState(argThat(matchesStateWithIndexOf(FLOW_FULLY_COMPENSATED_STATE_INDEX)));
+        }
+
+        void thenFlowStateHandlerWasCalledAsForSuccessfulFlow_withThreeRetriesOnFinalizingCommand_andAllOtherCommandsSuccessfulResponses() {
+            then(flowStateHandler).should(never()).readFlowState(any(UUID.class));
+            then(flowStateHandler).should()
+                    .createNewState(argThat(matchesStateWithIndexOf(FIRST_COMMAND_STATE_INDEX)), eq(FIRST_COMMAND.COMMAND));
+            then(flowStateHandler).should()
+                    .updateState(argThat(matchesStateWithIndexOf(QUERY_FOR_DATA_STATE_INDEX)), eq(QUERY_FOR_DATA.QUERY));
+            then(flowStateHandler).should()
+                    .updateState(argThat(matchesStateWithIndexOf(SECOND_COMMAND_STATE_INDEX)), eq(SECOND_COMMAND.COMMAND));
+            then(flowStateHandler).should(times(4))
+                    .updateState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_STATE_INDEX)), eq(FINISHING_COMMAND.COMMAND));
+            then(flowStateHandler).should()
+                    .finalizeState(argThat(matchesStateWithIndexOf(FINISHING_COMMAND_HANDLED_STATE_INDEX)));
         }
 
         private ArgumentMatcher<StateEnvelope<TestState>> matchesStateWithIndexOf(int stateIndex) {
