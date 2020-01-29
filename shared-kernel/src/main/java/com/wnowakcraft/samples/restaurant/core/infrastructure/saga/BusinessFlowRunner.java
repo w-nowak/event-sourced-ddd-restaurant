@@ -34,7 +34,7 @@ public class BusinessFlowRunner <E extends Event, S> {
     }
 
     public void onCommandResponse(Response commandResponse) {
-        if(!businessFlowHandler.isInitialized()){
+        if(businessFlowHandler.isNotYetInitialized()){
             businessFlowHandler.initWith(flowStateProvider.apply(commandResponse.getCorrelationId()));
         }
 
@@ -43,7 +43,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         businessFlowHandler.consume(commandResponse);
-        var nextCommand = businessFlowHandler.getNextCommandUpdateStateIndex();
+        var nextCommand = businessFlowHandler.moveOnToNextCommand();
         var flowCurrentState = businessFlowHandler.getFlowCurrentState();
 
         if(businessFlowHandler.isFlowComplete()) {
@@ -58,7 +58,7 @@ public class BusinessFlowRunner <E extends Event, S> {
 
     public void onInitHandler(E initEvent) {
         var initFlowState = businessFlowHandler.initWith(initEvent);
-        var firstCommand = businessFlowHandler.getNextCommandUpdateStateIndex().get();
+        var firstCommand = businessFlowHandler.moveOnToNextCommand().get();
 
         businessFlowInitHandler.accept(initFlowState, firstCommand);
     }
@@ -114,11 +114,11 @@ public class BusinessFlowRunner <E extends Event, S> {
         private boolean accepts(Response commandResponse) {
             requireFlowNotYetComplete();
 
-            return isCompensationSucceededResponeWhenCompensating(commandResponse) ||
+            return isCompensationSucceededResponseWhenCompensating(commandResponse) ||
                     isAnyResponseMappingFor(commandResponse.getClass());
         }
 
-        private boolean isCompensationSucceededResponeWhenCompensating(Response commandResponse) {
+        private boolean isCompensationSucceededResponseWhenCompensating(Response commandResponse) {
             return commandResponse instanceof CompensationSucceededResponse && flowCurrentState.isCompensation();
         }
 
@@ -167,7 +167,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         private Runnable onlyAdvanceFlowStateWhenCompensationSucceeded(Response response) {
-            return isCompensationSucceededResponeWhenCompensating(response) ?
+            return isCompensationSucceededResponseWhenCompensating(response) ?
                     this::advanceFlowCurrentState : Runnables.doNothing();
         }
 
@@ -179,7 +179,7 @@ public class BusinessFlowRunner <E extends Event, S> {
             return flowCurrentState;
         }
 
-        Optional<Command> getNextCommandUpdateStateIndex() {
+        Optional<Command> moveOnToNextCommand() {
             var possibleNextCommand = getFollowingCommand();
 
             while (isNoNextCommandDefinedAtCurrentStepWhenCompensating(possibleNextCommand)) {
@@ -213,8 +213,8 @@ public class BusinessFlowRunner <E extends Event, S> {
                     currentStepDefinition().getCompensatingCommandFnProvider();
         }
 
-        boolean isInitialized() {
-            return flowCurrentState != null;
+        boolean isNotYetInitialized() {
+            return flowCurrentState == null;
         }
 
         boolean isFlowComplete() {
@@ -240,7 +240,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         private void requireFlowNotYetInitialized() {
-            requireStateThat(!isInitialized(), "Flow runner got already initialized with current state. The current state cannot be overriden.");
+            requireStateThat(isNotYetInitialized(), "Flow runner got already initialized with current state. The current state cannot be overriden.");
         }
 
         private void requireFlowNotYetComplete() {
