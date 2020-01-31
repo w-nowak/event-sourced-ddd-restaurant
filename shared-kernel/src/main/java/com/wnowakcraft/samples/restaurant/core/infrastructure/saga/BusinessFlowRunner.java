@@ -7,6 +7,8 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.*;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +24,8 @@ import static lombok.AccessLevel.PRIVATE;
 
 @RequiredArgsConstructor
 public class BusinessFlowRunner <E extends Event, S> {
+    private static final Logger log = LoggerFactory.getLogger(BusinessFlowRunner.class);
+
     @NonNull private final BusinessFlowHandler<E, S> businessFlowHandler;
     @NonNull private final Function<UUID, StateEnvelope<S>> flowStateProvider;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
@@ -34,21 +38,31 @@ public class BusinessFlowRunner <E extends Event, S> {
     }
 
     public void onCommandResponse(Response commandResponse) {
+        log.info("Received a command response: {} with correlation id: {}",
+                commandResponse.getClass().getSimpleName(), commandResponse.getCorrelationId());
+
         if(businessFlowHandler.isNotYetInitialized()){
+            log.debug("Flow is not yet initialized, so initializing.");
             businessFlowHandler.initWith(flowStateProvider.apply(commandResponse.getCorrelationId()));
         }
 
         if(!businessFlowHandler.accepts(commandResponse)) {
+            log.debug("Received response: {} is not acceptable. Response consuming finished!", commandResponse.getClass().getSimpleName());
            return;
         }
 
+        log.debug("Received response accepted, consuming...");
         businessFlowHandler.consume(commandResponse);
+
+        log.debug("Received response consumed, moving to next command...");
         var nextCommand = businessFlowHandler.moveOnToNextCommand();
         var flowCurrentState = businessFlowHandler.getFlowCurrentState();
 
         if(businessFlowHandler.isFlowComplete()) {
+            log.info("No more commands left. Flow is completed.");
             flowFinishedHandler.accept(flowCurrentState);
         } else {
+            log.debug("Next command {} issued with current flow state to the flow state handler", nextCommand.map(cmd -> cmd.getClass().getSimpleName()).orElse("<<no_command>>"));
             flowStateChangeHandler.accept(
                     flowCurrentState,
                     nextCommand.orElseThrow(() -> new IllegalStateException("Flow is not finished but no next command defined"))
@@ -57,9 +71,13 @@ public class BusinessFlowRunner <E extends Event, S> {
     }
 
     public void onInitHandler(E initEvent) {
+        log.info("The init event received: {}. Initializing a new flow to handle this event.", initEvent.getClass().getSimpleName());
         var initFlowState = businessFlowHandler.initWith(initEvent);
+
+        log.debug("The new flow initialized, moving to first flow command...");
         var firstCommand = businessFlowHandler.moveOnToNextCommand().get();
 
+        log.debug("Passing initial flow state and first command: {} to business flow init handler", firstCommand.getClass().getSimpleName());
         businessFlowInitHandler.accept(initFlowState, firstCommand);
     }
 
