@@ -7,8 +7,7 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.*;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.Optional;
@@ -22,10 +21,9 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static lombok.AccessLevel.PRIVATE;
 
+@Slf4j
 @RequiredArgsConstructor
 public class BusinessFlowRunner <E extends Event, S> {
-    private static final Logger log = LoggerFactory.getLogger(BusinessFlowRunner.class);
-
     @NonNull private final BusinessFlowHandler<E, S> businessFlowHandler;
     @NonNull private final Function<UUID, StateEnvelope<S>> flowStateProvider;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
