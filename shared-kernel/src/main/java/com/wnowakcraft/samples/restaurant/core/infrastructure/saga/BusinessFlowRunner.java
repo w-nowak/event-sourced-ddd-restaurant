@@ -1,6 +1,8 @@
 package com.wnowakcraft.samples.restaurant.core.infrastructure.saga;
 
 import com.google.common.util.concurrent.Runnables;
+import com.wnowakcraft.logging.LogAfter;
+import com.wnowakcraft.logging.LogBefore;
 import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition;
 import com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.BusinessFlowStep;
 import com.wnowakcraft.samples.restaurant.core.domain.model.*;
@@ -16,6 +18,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static com.wnowakcraft.logging.Level.DEBUG;
+import static com.wnowakcraft.logging.Level.INFO;
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -35,12 +39,10 @@ public class BusinessFlowRunner <E extends Event, S> {
         return new BusinessFlowRunnerBuilder<>(businessFlowHandler);
     }
 
+    @LogBefore(value = "Received a command response: {p0.getClass().getSimpleName()} with correlation id: {p0.getCorrelationId()}", level = INFO)
     public void onCommandResponse(Response commandResponse) {
-        log.info("Received a command response: {} with correlation id: {}",
-                commandResponse.getClass().getSimpleName(), commandResponse.getCorrelationId());
 
         if(businessFlowHandler.isNotYetInitialized()){
-            log.debug("Flow is not yet initialized, so initializing.");
             businessFlowHandler.initWith(flowStateProvider.apply(commandResponse.getCorrelationId()));
         }
 
@@ -49,10 +51,8 @@ public class BusinessFlowRunner <E extends Event, S> {
            return;
         }
 
-        log.debug("Received response accepted, consuming...");
         businessFlowHandler.consume(commandResponse);
 
-        log.debug("Received response consumed, moving to next command...");
         var nextCommand = businessFlowHandler.moveOnToNextCommand();
         var flowCurrentState = businessFlowHandler.getFlowCurrentState();
 
@@ -69,10 +69,8 @@ public class BusinessFlowRunner <E extends Event, S> {
     }
 
     public void onInitHandler(E initEvent) {
-        log.info("The init event received: {}. Initializing a new flow to handle this event.", initEvent.getClass().getSimpleName());
         var initFlowState = businessFlowHandler.initWith(initEvent);
 
-        log.debug("The new flow initialized, moving to first flow command...");
         var firstCommand = businessFlowHandler.moveOnToNextCommand().get();
 
         log.debug("Passing initial flow state and first command: {} to business flow init handler", firstCommand.getClass().getSimpleName());
@@ -116,6 +114,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
     }
 
+    @Slf4j
     @RequiredArgsConstructor(access = PRIVATE)
     private static class BusinessFlowHandler<E extends Event, S> {
         private static final short INDEX_OF_FULLY_COMPENSATED_STATE = -2;
@@ -153,6 +152,8 @@ public class BusinessFlowRunner <E extends Event, S> {
                     businessFlowDefinition.getBusinessFlowSteps().get(flowCurrentStateIndex);
         }
 
+        @LogBefore(value = "Received response accepted, consuming...", level = DEBUG)
+        @LogAfter(value = "Received response consumed", level = DEBUG)
         void consume(Response commandResponse) {
             requireFlowNotYetComplete();
 
@@ -195,6 +196,7 @@ public class BusinessFlowRunner <E extends Event, S> {
             return flowCurrentState;
         }
 
+        @LogBefore(value = "Moving to next command...", level = DEBUG)
         Optional<Command> moveOnToNextCommand() {
             var possibleNextCommand = getFollowingCommand();
 
@@ -239,12 +241,15 @@ public class BusinessFlowRunner <E extends Event, S> {
                     flowCurrentState.getStateIndex() == INDEX_OF_FULLY_COMPENSATED_STATE;
         }
 
+        @LogBefore(value = "Flow is not yet initialized, so initializing.", level = INFO)
         void initWith(StateEnvelope<S> flowState) {
             requireFlowNotYetInitialized();
 
             flowCurrentState = flowState;
         }
 
+        @LogBefore(value = "The init event received: {p0.getClass().getSimpleName()}. Initializing a new flow to handle this event.", level = DEBUG)
+        @LogAfter(value = "The new flow initialized.", level = DEBUG)
         StateEnvelope<S> initWith(E event) {
             requireFlowNotYetInitialized();
 

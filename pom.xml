@@ -16,12 +16,18 @@
 
     <properties>
         <junit-jupiter.version>5.5.0</junit-jupiter.version>
+        <aspectj.version>1.9.5</aspectj.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.wnowakcraft</groupId>
             <artifactId>preconditions</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.wnowakcraft</groupId>
+            <artifactId>annoteted-logging</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -34,6 +40,13 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>28.2-jre</version>
+        </dependency>
+
+        <!-- aspectj -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.version}</version>
         </dependency>
 
         <!-- logging -->
@@ -123,6 +136,52 @@
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-surefire-provider</artifactId>
                         <version>1.2.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>com.nickwongdev</groupId>
+                <artifactId>aspectj-maven-plugin</artifactId>
+                <version>1.12.6</version>
+                <configuration>
+                    <complianceLevel>11</complianceLevel>
+                    <source>11</source>
+                    <target>11</target>
+                    <showWeaveInfo>true</showWeaveInfo>
+                    <verbose>true</verbose>
+                    <Xlint>ignore</Xlint>
+                    <encoding>UTF-8</encoding>
+                    <forceAjcCompile>true</forceAjcCompile>
+                    <sources/><!-- necessary to skip waving aspects from source java files -->
+                    <aspectLibraries>
+                        <aspectLibrary>
+                            <groupId>com.wnowakcraft</groupId>
+                            <artifactId>annoteted-logging</artifactId>
+                        </aspectLibrary>
+                    </aspectLibraries>
+                    <weaveDirectories>
+                        <weaveDirectory>${project.build.directory}/classes</weaveDirectory>
+                    </weaveDirectories>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- compiles from classes as opposed to java source files -->
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjtools</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.wnowakcraft</groupId>
+                        <artifactId>annoteted-logging</artifactId>
+                        <version>1.0.0-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
             </plugin>
