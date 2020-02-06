@@ -197,6 +197,7 @@ public class BusinessFlowRunner <E extends Event, S> {
         }
 
         @LogBefore(value = "Moving to next command...", level = DEBUG)
+        @LogAfter(value = "Next command is: {r.getClass().getSimpleName()}", level = DEBUG)
         Optional<Command> moveOnToNextCommand() {
             var possibleNextCommand = getFollowingCommand();
 
