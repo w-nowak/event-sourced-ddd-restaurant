@@ -22,7 +22,7 @@ import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowD
 import static java.util.stream.Collectors.toUnmodifiableList;
 
 public class CreateOrderBusinessFlow {
-    private final BusinessFlowDefinition<OrderCreatedEvent, CreateOrderFlowState> createOrderBusinessFlowDefinition =
+    private final BusinessFlowDefinition<OrderCreatedEvent, CreateOrderFlowState> createOrderBusinessFlowDefinition = // @formatter:off
             BusinessFlowDefinition
                 .startWith(OrderCreatedEvent.class, CreateOrderFlowState::new)
                     .compensateBy(s -> new RejectOrderCommand(s.getOrderId()))
@@ -51,6 +51,7 @@ public class CreateOrderBusinessFlow {
                     .on(OrderApprovedResponse.class, success())
                     .on(OrderApproveFailedResponse.class, failureWithRetry())
                 .done();
+    // @formatter:on
 
     public CreateOrderBusinessFlow(BusinessFlowProvisioner<OrderCreatedEvent, CreateOrderFlowState> businessFlowProvisioner) {
         requireNonNull(businessFlowProvisioner, "businessFlowProvisioner");
@@ -109,7 +110,7 @@ public class CreateOrderBusinessFlow {
     }
 
     @Getter
-    public class CreateOrderFlowState {
+    public static class CreateOrderFlowState {
         private final Order.Id orderId;
         private final CustomerId customerId;
         private final RestaurantId restaurantId;

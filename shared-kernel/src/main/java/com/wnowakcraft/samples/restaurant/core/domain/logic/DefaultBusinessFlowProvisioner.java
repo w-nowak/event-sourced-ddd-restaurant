@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
 @RequiredArgsConstructor
-public class DefaultBusinessFlowProvisioner<E extends Event, S> implements BusinessFlowProvisioner<E, S> {
+public class DefaultBusinessFlowProvisioner<E extends Event<?>, S> implements BusinessFlowProvisioner<E, S> {
     @NonNull private final EventListenerBuilder eventListenerBuilder;
     @NonNull private final CommandChannelFactory commandChannelFactory;
     @NonNull private final BusinessFlowStateHandler<S> flowStateHandler;
@@ -40,7 +40,7 @@ public class DefaultBusinessFlowProvisioner<E extends Event, S> implements Busin
     }
 
     @Value
-    public static class BusinessFlowProvisionerConfig<E extends Event> {
+    public static class BusinessFlowProvisionerConfig<E extends Event<?>> {
         @NonNull private final String commandResponseChannelName;
         @NonNull private final Class<? super E> eventKindToListenTo;
         @NonNull private final Class<? extends E> eventInitializingFlow;

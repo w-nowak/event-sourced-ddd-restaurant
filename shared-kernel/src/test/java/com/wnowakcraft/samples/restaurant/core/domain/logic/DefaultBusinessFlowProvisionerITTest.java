@@ -5,6 +5,7 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
 import com.wnowakcraft.samples.restaurant.core.domain.model.CompensationSucceededResponse;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.*;
+import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowRunner.StateEnvelope;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowStateHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,9 +25,9 @@ import java.util.function.Consumer;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.StateIndexAndCompensation.normalFlowAt;
-import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.ThenRespondWith.thenRespondInSequenceWith;
-import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.ThenRespondWith.thenRespondWith;
-import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannelMock.allowedFlowFinishedResponses;
+import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock.allowedFlowFinishedResponses;
+import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.WhenOnCommand.ThenRespondWith.thenRespondInSequenceWith;
+import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.WhenOnCommand.ThenRespondWith.thenRespondWith;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -271,7 +272,7 @@ class DefaultBusinessFlowProvisionerITTest {
             commandResponseChannelMock =
                     CommandResponseChannelMock.mockCommandResponseChannel(
                             COMMAND_RESPONSE_CHANNEL_NAME, commandChannelFactory,
-                            allowedFlowFinishedResponses(FINISHING_COMMAND.SUCCESSFUL_RESPONSE, INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE)
+                            allowedFlowFinishedResponses(FinishingCommandSuccessfulResponse.class, CompensationCommandSucceededResponse.class)
                     );
         }
 
@@ -304,32 +305,32 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void givenFirstCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(FIRST_COMMAND.COMMAND, thenRespondWith(FIRST_COMMAND.SUCCESSFUL_RESPONSE));
+            commandResponseChannelMock.when(FIRST_COMMAND.COMMAND.getClass(), thenRespondWith(FIRST_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenQueryForDataReturnsResponseWithRequestedData() {
-            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY, thenRespondWith(QUERY_FOR_DATA.RETURNED_RESPONSE));
+            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY.getClass(), thenRespondWith(QUERY_FOR_DATA.RETURNED_RESPONSE));
         }
 
         void givenQueryForDataReturnsErrorResponse() {
-            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY, thenRespondWith(QUERY_FOR_DATA.ERROR_RESPONSE));
+            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY.getClass(), thenRespondWith(QUERY_FOR_DATA.ERROR_RESPONSE));
         }
 
         void givenSecondCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND, thenRespondWith(SECOND_COMMAND.SUCCESSFUL_RESPONSE));
+            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND.getClass(), thenRespondWith(SECOND_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenSecondCommandReturnsErrorResponse() {
-            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND, thenRespondWith(SECOND_COMMAND.ERROR_RESPONSE));
+            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND.getClass(), thenRespondWith(SECOND_COMMAND.ERROR_RESPONSE));
         }
 
         void givenFinalizingCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(FINISHING_COMMAND.COMMAND, thenRespondWith(FINISHING_COMMAND.SUCCESSFUL_RESPONSE));
+            commandResponseChannelMock.when(FINISHING_COMMAND.COMMAND.getClass(), thenRespondWith(FINISHING_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenFinalizingCommandReturnsSuccessfulResponseOnThirdRetry() {
             commandResponseChannelMock.when(
-                    FINISHING_COMMAND.COMMAND,
+                    FINISHING_COMMAND.COMMAND.getClass(),
                     thenRespondInSequenceWith(
                             FINISHING_COMMAND.ERROR_RESPONSE,
                             FINISHING_COMMAND.ERROR_RESPONSE,
@@ -339,15 +340,15 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void givenSecondCommandCompensationSucceeds() {
-            commandResponseChannelMock.when(SECOND_COMMAND.COMPENSATION, thenRespondWith(SECOND_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
+            commandResponseChannelMock.when(SECOND_COMMAND.COMPENSATION.getClass(), thenRespondWith(SECOND_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void givenFirstCommandCompensationSucceeds() {
-            commandResponseChannelMock.when(FIRST_COMMAND.COMPENSATION, thenRespondWith(FIRST_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
+            commandResponseChannelMock.when(FIRST_COMMAND.COMPENSATION.getClass(), thenRespondWith(FIRST_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void givenInitEventCompensationSucceeds() {
-            commandResponseChannelMock.when(INIT_EVENT.COMPENSATION_COMMAND, thenRespondWith(INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE));
+            commandResponseChannelMock.when(INIT_EVENT.COMPENSATION_COMMAND.getClass(), thenRespondWith(INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void whenFlowIsInitiatedByInitEvent() {

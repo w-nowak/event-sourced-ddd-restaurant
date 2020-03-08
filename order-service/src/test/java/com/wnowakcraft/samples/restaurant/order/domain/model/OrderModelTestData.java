@@ -17,6 +17,7 @@ public class OrderModelTestData {
     public static final MenuItemId MENU_ITEM_ID = MenuItemId.of("RESTAURANT-MENU_ITEM-A-3df56c04-0bf9-4caa");
     public static final CustomerId CUSTOMER_ID = CustomerId.of("CUSTOMER-CUSTOMER-A-3df56c04-0bf9-4caa");
     public static final RestaurantId RESTAURANT_ID = RestaurantId.of("RESTAURANT-RESTAURANT-A-3df56c04-0bf9-4caa");
+    public static final KitchenTicketId KITCHEN_TICKET_ID = KitchenTicketId.of("KITCHEN-KITCHEN_TICKET-A-3df56c04-0bf9-4caa");
     public static final OrderSnapshot.Id ORDER_SNAPSHOT_ID = OrderSnapshot.Id.of("ORDER-ORDER-S-29ef61dc-651c-4b87");
     public static final Instant CREATION_DATE = Instant.now();
     public static final Aggregate.Version AGGREGATE_VERSION = Aggregate.Version.of(741258);

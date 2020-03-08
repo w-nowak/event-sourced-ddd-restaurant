@@ -1,6 +1,7 @@
-package com.wnowakcraft.samples.restaurant.core.infrastructure.messaging;
+package com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking;
 
-import com.google.common.collect.ImmutableList;
+import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandChannelFactory;
+import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.CommandResponseChannel;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 import com.wnowakcraft.samples.restaurant.core.utils.AsyncTestSupportSupport;
@@ -15,15 +16,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
-import static java.util.Collections.singletonList;
 import static lombok.AccessLevel.PRIVATE;
 import static org.mockito.BDDMockito.*;
 import static org.mockito.Mockito.mock;
 
 @RequiredArgsConstructor(access = PRIVATE)
-public class CommandResponseChannelMock {
+public class CommandResponseChannelMock implements WhenOnCommand {
     private final ArgumentCaptor<Consumer<Response>> commandResponseConsumerCaptor;
-    private final Collection<Response> asyncFlowFinishedResponses;
+    private final Collection<Class<? extends Response>> asyncFlowFinishedResponseTypes;
     private final SentCommandNotifier sentCommandNotifierMock = mock(SentCommandNotifier.class);
     private AsyncCommandResponse asyncCommandResponse = new AsyncPoolCommandResponse();
     private AsyncTestSupportSupport asyncTestSupport = new AsyncTestSupportSupport();
@@ -31,7 +31,7 @@ public class CommandResponseChannelMock {
 
     public static CommandResponseChannelMock mockCommandResponseChannel(
             String channelName, CommandChannelFactory commandChannelFactoryMock,
-            Collection<Response> asyncFlowFinishedResponses){
+            Collection<Class<? extends Response>> asyncFlowFinishedResponseTypes){
 
         CommandResponseChannel commandResponseChannel = mock(CommandResponseChannel.class);
 
@@ -41,16 +41,19 @@ public class CommandResponseChannelMock {
         given(commandChannelFactoryMock.createResponseChannel(channelName))
                 .willReturn(CompletableFuture.completedFuture(commandResponseChannel));
 
-        return new CommandResponseChannelMock(commandResponseConsumerCaptor, asyncFlowFinishedResponses);
+        return new CommandResponseChannelMock(commandResponseConsumerCaptor, asyncFlowFinishedResponseTypes);
     }
 
-    public static Collection<Response> allowedFlowFinishedResponses(Response... responses) {
+
+    @SafeVarargs
+    public static Collection<Class<? extends Response>> allowedFlowFinishedResponses(Class<? extends Response>... responses) {
         return List.of(responses);
     }
 
-    public CommandResponseChannelMock when(Command commandIssued, ThenRespondWith thenRespondWith) {
+    @Override
+    public CommandResponseChannelMock when(Class<? extends Command> commandTypeIssued, ThenRespondWith thenRespondWith) {
         BDDMockito.BDDStubber stubber = null;
-        var commandResponseIterator = thenRespondWith.commandResponses.iterator();
+        var commandResponseIterator = thenRespondWith.getCommandResponses().iterator();
 
         if(commandResponseIterator.hasNext()) {
             var commandResponse = commandResponseIterator.next();
@@ -63,7 +66,7 @@ public class CommandResponseChannelMock {
         }
 
         if(stubber != null) {
-            stubber.given(sentCommandNotifierMock).notifyCommandSent(commandIssued);
+            stubber.given(sentCommandNotifierMock).notifyCommandSent(any(commandTypeIssued));
         }
 
         return this;
@@ -93,20 +96,6 @@ public class CommandResponseChannelMock {
         commandResponseConsumerCaptor.getValue().accept(commandResponse);
     }
 
-    @RequiredArgsConstructor(access = PRIVATE)
-    public static class ThenRespondWith {
-        private final Collection<Response> commandResponses;
-
-        public static ThenRespondWith thenRespondWith(Response commandResponse) {
-            return new ThenRespondWith(singletonList(commandResponse));
-        }
-
-        public static ThenRespondWith thenRespondInSequenceWith(Response commandResponse1, Response... commandOtherResponses) {
-            var allResponses = ImmutableList.<Response>builder().add(commandResponse1).add(commandOtherResponses).build();
-            return new ThenRespondWith(allResponses);
-        }
-    }
-
     public interface AsyncCommandResponse {
         void scheduleResponse(Consumer<Response> responseConsumer, Response response);
     }
@@ -117,7 +106,7 @@ public class CommandResponseChannelMock {
         public void scheduleResponse(Consumer<Response> responseConsumer, Response actualResponse) {
             ForkJoinPool.commonPool().execute(() -> {
                 responseConsumer.accept(actualResponse);
-                if(asyncFlowFinishedResponses.stream().anyMatch( response -> response.equals(actualResponse))) {
+                if(asyncFlowFinishedResponseTypes.stream().anyMatch(responseType -> responseType.isAssignableFrom(actualResponse.getClass()))) {
                     asyncTestSupport.finishAsyncFlow();
                 }
             }
@@ -125,6 +114,7 @@ public class CommandResponseChannelMock {
         }
     }
 
+    @FunctionalInterface
     public interface SentCommandNotifier {
         void notifyCommandSent(Command command);
     }

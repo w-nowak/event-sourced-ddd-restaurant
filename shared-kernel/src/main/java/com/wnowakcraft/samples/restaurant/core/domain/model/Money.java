@@ -13,7 +13,7 @@ public class Money {
 
     private final BigDecimal amount;
 
-    public Money(double amount) {
+    private Money(double amount) {
         requireThatAmountIsNonNegative(amount);
 
         this.amount = BigDecimal.valueOf(amount);
@@ -24,6 +24,10 @@ public class Money {
         requireThatAmountIsNonNegative(amount.floatValue());
 
         this.amount = amount;
+    }
+
+    public static Money of(double amount) {
+        return new Money(amount);
     }
 
     public Money add(Money money) {
@@ -42,7 +46,7 @@ public class Money {
         return new Money(this.amount.divide(BigDecimal.valueOf(value)));
     }
 
-    public void requireThatAmountIsNonNegative(double amount) {
+    public static void requireThatAmountIsNonNegative(double amount) {
         requireThat(amount >= 0, "amount cannot be negative value");
     }
 }

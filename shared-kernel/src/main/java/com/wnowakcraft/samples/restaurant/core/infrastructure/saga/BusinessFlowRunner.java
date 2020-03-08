@@ -27,14 +27,14 @@ import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @RequiredArgsConstructor
-public class BusinessFlowRunner <E extends Event, S> {
+public class BusinessFlowRunner <E extends Event<?>, S> {
     @NonNull private final BusinessFlowHandler<E, S> businessFlowHandler;
     @NonNull private final Function<UUID, StateEnvelope<S>> flowStateProvider;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
     @NonNull private final BiConsumer<StateEnvelope<S>, Command> flowStateChangeHandler;
     @NonNull private final Consumer<StateEnvelope<S>> flowFinishedHandler;
 
-    public static <E extends Event, S> BusinessFlowRunnerBuilder<E, S> from(BusinessFlowDefinition<E, S> businessFlowDefinition) {
+    public static <E extends Event<?>, S> BusinessFlowRunnerBuilder<E, S> from(BusinessFlowDefinition<E, S> businessFlowDefinition) {
         var businessFlowHandler = BusinessFlowHandler.createFor(businessFlowDefinition);
         return new BusinessFlowRunnerBuilder<>(businessFlowHandler);
     }
@@ -79,7 +79,7 @@ public class BusinessFlowRunner <E extends Event, S> {
 
 
     @RequiredArgsConstructor
-    public static class BusinessFlowRunnerBuilder<E extends Event, S> {
+    public static class BusinessFlowRunnerBuilder<E extends Event<?>, S> {
         private final BusinessFlowHandler<E, S> businessFlowHandler;
         private Function<UUID, StateEnvelope<S>> flowStateProvider;
         private BiConsumer<StateEnvelope<S>, Command> businessFlowInitHandler;
@@ -116,13 +116,13 @@ public class BusinessFlowRunner <E extends Event, S> {
 
     @Slf4j
     @RequiredArgsConstructor(access = PRIVATE)
-    private static class BusinessFlowHandler<E extends Event, S> {
+    private static class BusinessFlowHandler<E extends Event<?>, S> {
         private static final short INDEX_OF_FULLY_COMPENSATED_STATE = -2;
         private static final short INIT_EVENT_COMPENSATION_STEP_INDEX = -1;
         private final BusinessFlowDefinition<E, S> businessFlowDefinition;
         private StateEnvelope<S> flowCurrentState;
 
-        static <S, E extends Event> BusinessFlowHandler<E, S> createFor(BusinessFlowDefinition<E, S> businessFlowDefinition) {
+        static <S, E extends Event<?>> BusinessFlowHandler<E, S> createFor(BusinessFlowDefinition<E, S> businessFlowDefinition) {
             return new BusinessFlowHandler<>(businessFlowDefinition);
         }
 
