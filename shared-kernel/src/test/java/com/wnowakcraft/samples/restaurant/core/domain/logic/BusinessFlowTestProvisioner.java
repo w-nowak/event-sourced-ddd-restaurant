@@ -36,7 +36,7 @@ public class BusinessFlowTestProvisioner<E extends Event<?>, S> implements Busin
         var businessFlowProvisioner = businessFlowMock.initializeTestProvisioner(DefaultBusinessFlowProvisioner::new);
 
         givenBusinessFlowInteractionsStateHandler = GivenBusinessFlowInteractionsStateHandler
-                .initialize(givenBusinessFlowInteractions.getGivenFollowingCommandTypes(), businessFlowMock.getWhenOnCommandMock());
+                .initialize(givenBusinessFlowInteractions.getGivenFollowingCommandTypes(), businessFlowMock.getOnCommandMock());
 
         businessFlowMock.attachBeforeCommandSentHandler(command -> givenBusinessFlowInteractionsStateHandler.mockResponseFor(command));
 

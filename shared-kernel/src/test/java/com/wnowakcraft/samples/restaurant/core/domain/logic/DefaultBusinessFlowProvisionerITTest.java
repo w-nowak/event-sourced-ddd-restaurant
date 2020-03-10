@@ -4,23 +4,18 @@ import com.wnowakcraft.samples.restaurant.core.domain.logic.DefaultBusinessFlowP
 import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
 import com.wnowakcraft.samples.restaurant.core.domain.model.CompensationSucceededResponse;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
-import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.*;
-import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock;
+import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.BusinessFlowMock;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowRunner.StateEnvelope;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowStateHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.UUID;
-import java.util.function.Consumer;
 
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
@@ -28,11 +23,9 @@ import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.Stat
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock.allowedFlowFinishedResponses;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.WhenOnCommand.ThenRespondWith.thenRespondInSequenceWith;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.WhenOnCommand.ThenRespondWith.thenRespondWith;
-import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
-import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 class DefaultBusinessFlowProvisionerITTest {
@@ -234,102 +227,62 @@ class DefaultBusinessFlowProvisionerITTest {
 
         private final BusinessFlowDefinition<TestInitEvent, TestState> businessFlowDefinition;
 
-        @Mock private BusinessFlowStateHandler<TestState> flowStateHandler;
-        @Mock private CommandChannelFactory commandChannelFactory;
-        @Mock private EventListenerFactory eventListenerFactory;
-        private EventListenerBuilder eventListenerBuilder;
+        private BusinessFlowStateHandler<TestState> flowStateHandler;
         private BusinessFlowProvisionerConfig<TestInitEvent> flowProvisionerConfig;
         private TestState actualFlowState;
-        private CommandResponseChannelMock commandResponseChannelMock;
-        private ArgumentCaptor<Consumer<TestInitEvent>> initEventCaptor = ArgumentCaptor.forClass(Consumer.class);
         private BusinessFlowProvisioner<TestInitEvent, TestState> businessFlowProvisioner;
+        private BusinessFlowMock<TestInitEvent, TestState> businessFlowMock;
 
         Fixture(BusinessFlowDefinition<TestInitEvent, TestState> businessFlowDefinition, TestState flowInitialState) {
             this.businessFlowDefinition = businessFlowDefinition;
             this.actualFlowState = flowInitialState;
             MockitoAnnotations.initMocks(this);
 
-            eventListenerBuilder = new EventListenerBuilder(eventListenerFactory);
-
             flowProvisionerConfig = new BusinessFlowProvisionerConfig<>(
                     COMMAND_RESPONSE_CHANNEL_NAME, EVENT_FAMILY, INIT_EVENT.EVENT.getClass());
 
-            businessFlowProvisioner = new DefaultBusinessFlowProvisioner<>(
-                    eventListenerBuilder,
-                    commandChannelFactory,
-                    flowStateHandler,
-                    flowProvisionerConfig
+            businessFlowMock = new BusinessFlowMock<>(
+                    flowProvisionerConfig,
+                    allowedFlowFinishedResponses(FinishingCommandSuccessfulResponse.class, CompensationCommandSucceededResponse.class)
             );
+
+            this.flowStateHandler = businessFlowMock.getFlowStateHandler();
         }
 
         void givenFlowIsInitialized() {
-            setUpCommandResponseChannelMock();
-            mockFlowStateHandlerToNotifyAboutPublishedCommands();
-            mockEventListenerFactoryToCaptureEventListener();
+            businessFlowProvisioner = businessFlowMock.initializeTestProvisioner(DefaultBusinessFlowProvisioner::new);
         }
-
-        private void setUpCommandResponseChannelMock() {
-            commandResponseChannelMock =
-                    CommandResponseChannelMock.mockCommandResponseChannel(
-                            COMMAND_RESPONSE_CHANNEL_NAME, commandChannelFactory,
-                            allowedFlowFinishedResponses(FinishingCommandSuccessfulResponse.class, CompensationCommandSucceededResponse.class)
-                    );
-        }
-
-        private void mockFlowStateHandlerToNotifyAboutPublishedCommands() {
-            willAnswer(this::notifyCommandSent)
-                    .given(flowStateHandler)
-                    .createNewState(anyStateEnvelope(), any(Command.class));
-            willAnswer(this::notifyCommandSent)
-                    .given(flowStateHandler)
-                    .updateState(anyStateEnvelope(), any(Command.class));
-        }
-
-        private Void notifyCommandSent(InvocationOnMock invocationOnMock) {
-            commandResponseChannelMock
-                    .getSentCommandNotifier()
-                    .notifyCommandSent(invocationOnMock.getArgument(1, Command.class));
-
-            return null;
-        }
-
-        private void mockEventListenerFactoryToCaptureEventListener() {
-            EventListener<TestInitEvent> eventListener = mock(EventListener.class);
-            given(eventListenerFactory.<TestInitEvent>listenToEventsOfKind(EVENT_FAMILY)).willReturn(completedFuture(eventListener));
-            willDoNothing().given(eventListener).onEvent(initEventCaptor.capture());
-        }
-
 
         void givenFlowIsProvisioned() {
             businessFlowProvisioner.provision(businessFlowDefinition);
         }
 
         void givenFirstCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(FIRST_COMMAND.COMMAND.getClass(), thenRespondWith(FIRST_COMMAND.SUCCESSFUL_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(FIRST_COMMAND.COMMAND.getClass(), thenRespondWith(FIRST_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenQueryForDataReturnsResponseWithRequestedData() {
-            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY.getClass(), thenRespondWith(QUERY_FOR_DATA.RETURNED_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(QUERY_FOR_DATA.QUERY.getClass(), thenRespondWith(QUERY_FOR_DATA.RETURNED_RESPONSE));
         }
 
         void givenQueryForDataReturnsErrorResponse() {
-            commandResponseChannelMock.when(QUERY_FOR_DATA.QUERY.getClass(), thenRespondWith(QUERY_FOR_DATA.ERROR_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(QUERY_FOR_DATA.QUERY.getClass(), thenRespondWith(QUERY_FOR_DATA.ERROR_RESPONSE));
         }
 
         void givenSecondCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND.getClass(), thenRespondWith(SECOND_COMMAND.SUCCESSFUL_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(SECOND_COMMAND.COMMAND.getClass(), thenRespondWith(SECOND_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenSecondCommandReturnsErrorResponse() {
-            commandResponseChannelMock.when(SECOND_COMMAND.COMMAND.getClass(), thenRespondWith(SECOND_COMMAND.ERROR_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(SECOND_COMMAND.COMMAND.getClass(), thenRespondWith(SECOND_COMMAND.ERROR_RESPONSE));
         }
 
         void givenFinalizingCommandReturnsSuccessfulResponse() {
-            commandResponseChannelMock.when(FINISHING_COMMAND.COMMAND.getClass(), thenRespondWith(FINISHING_COMMAND.SUCCESSFUL_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(FINISHING_COMMAND.COMMAND.getClass(), thenRespondWith(FINISHING_COMMAND.SUCCESSFUL_RESPONSE));
         }
 
         void givenFinalizingCommandReturnsSuccessfulResponseOnThirdRetry() {
-            commandResponseChannelMock.when(
+            businessFlowMock.getOnCommandMock().when(
                     FINISHING_COMMAND.COMMAND.getClass(),
                     thenRespondInSequenceWith(
                             FINISHING_COMMAND.ERROR_RESPONSE,
@@ -340,25 +293,23 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void givenSecondCommandCompensationSucceeds() {
-            commandResponseChannelMock.when(SECOND_COMMAND.COMPENSATION.getClass(), thenRespondWith(SECOND_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(SECOND_COMMAND.COMPENSATION.getClass(), thenRespondWith(SECOND_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void givenFirstCommandCompensationSucceeds() {
-            commandResponseChannelMock.when(FIRST_COMMAND.COMPENSATION.getClass(), thenRespondWith(FIRST_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(FIRST_COMMAND.COMPENSATION.getClass(), thenRespondWith(FIRST_COMMAND.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void givenInitEventCompensationSucceeds() {
-            commandResponseChannelMock.when(INIT_EVENT.COMPENSATION_COMMAND.getClass(), thenRespondWith(INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE));
+            businessFlowMock.getOnCommandMock().when(INIT_EVENT.COMPENSATION_COMMAND.getClass(), thenRespondWith(INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE));
         }
 
         void whenFlowIsInitiatedByInitEvent() {
-            initEventCaptor.getValue().accept(INIT_EVENT.EVENT);
+            businessFlowMock.triggerBusinessFlowInitEvent(INIT_EVENT.EVENT);
         }
 
         void thenWaitUntilFlowIsFinished() {
-            commandResponseChannelMock
-                    .getAsyncTestWaitSupport()
-                    .waitUntilAsyncFlowFinished();
+
         }
 
         void thenFinalStateIs(TestState expectedTestState) {
@@ -502,15 +453,15 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void whenFirstCommandSuccessfulResponseIsReceived() {
-            commandResponseChannelMock.acceptNewCommandResponseJustReceived(FIRST_COMMAND.SUCCESSFUL_RESPONSE);
+            businessFlowMock.whenFollowingCommandResponseReceived(FIRST_COMMAND.SUCCESSFUL_RESPONSE);
         }
 
         void whenSecondCommandSuccessfulResponseIsReceived() {
-            commandResponseChannelMock.acceptNewCommandResponseJustReceived(SECOND_COMMAND.SUCCESSFUL_RESPONSE);
+            businessFlowMock.whenFollowingCommandResponseReceived(SECOND_COMMAND.SUCCESSFUL_RESPONSE);
         }
 
         void whenRequestedDataIsReceived() {
-            commandResponseChannelMock.acceptNewCommandResponseJustReceived(QUERY_FOR_DATA.RETURNED_RESPONSE);
+            businessFlowMock.whenFollowingCommandResponseReceived(QUERY_FOR_DATA.RETURNED_RESPONSE);
         }
     }
 }

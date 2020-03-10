@@ -11,6 +11,7 @@ import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.EventLis
 import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.EventListenerFactory;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowRunner;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowStateHandler;
+import lombok.Getter;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 
@@ -26,7 +27,7 @@ import static org.mockito.Mockito.mock;
 
 public class BusinessFlowMock<E extends Event<?>, S> {
     private static final BeforeCommandSent NO_BEFORE_COMMAND_SENT_HANDLER = (c) -> {};
-    private final BusinessFlowStateHandler<S> flowStateHandler;
+    @Getter private final BusinessFlowStateHandler<S> flowStateHandler;
     private final CommandChannelFactory commandChannelFactory;
     private final EventListenerFactory eventListenerFactory;
     private CommandResponseChannelMock commandResponseChannelMock;
@@ -82,12 +83,20 @@ public class BusinessFlowMock<E extends Event<?>, S> {
                 .waitUntilAsyncFlowFinished();
     }
 
+    public void whenFollowingCommandResponseReceived(Response response) {
+        commandResponseChannelMock.acceptNewCommandResponseJustReceived(response);
+
+        commandResponseChannelMock
+                .getAsyncTestWaitSupport()
+                .waitUntilAsyncFlowFinished();
+    }
+
     @SafeVarargs
     public static Collection<Class<? extends Response>> allowedFlowFinishedResponses(Class<? extends Response>... responses) {
         return List.of(responses);
     }
 
-    public WhenOnCommand getWhenOnCommandMock() {
+    public WhenOnCommand getOnCommandMock() {
         return commandResponseChannelMock;
     }
 
