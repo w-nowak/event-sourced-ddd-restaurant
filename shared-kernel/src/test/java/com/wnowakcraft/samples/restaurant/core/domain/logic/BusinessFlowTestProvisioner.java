@@ -46,6 +46,7 @@ public class BusinessFlowTestProvisioner<E extends Event<?>, S> implements Busin
     public void triggerBusinessFlowInitEvent()
     {
         businessFlowMock.triggerBusinessFlowInitEvent(givenBusinessFlowInteractions.getFlowInitEvent());
+        businessFlowMock.thenWaitUntilFlowIsFinished();
     }
 
     @RequiredArgsConstructor

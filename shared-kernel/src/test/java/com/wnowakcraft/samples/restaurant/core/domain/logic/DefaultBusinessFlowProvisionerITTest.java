@@ -309,7 +309,7 @@ class DefaultBusinessFlowProvisionerITTest {
         }
 
         void thenWaitUntilFlowIsFinished() {
-
+            businessFlowMock.thenWaitUntilFlowIsFinished();
         }
 
         void thenFinalStateIs(TestState expectedTestState) {

@@ -85,7 +85,9 @@ public class BusinessFlowMock<E extends Event<?>, S> {
 
     public void whenFollowingCommandResponseReceived(Response response) {
         commandResponseChannelMock.acceptNewCommandResponseJustReceived(response);
+    }
 
+    public void thenWaitUntilFlowIsFinished() {
         commandResponseChannelMock
                 .getAsyncTestWaitSupport()
                 .waitUntilAsyncFlowFinished();
