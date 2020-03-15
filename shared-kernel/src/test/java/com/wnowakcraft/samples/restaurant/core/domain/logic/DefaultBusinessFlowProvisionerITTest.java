@@ -245,7 +245,7 @@ class DefaultBusinessFlowProvisionerITTest {
 
             businessFlowMock = new BusinessFlowMock<>(
                     flowProvisionerConfig,
-                    allowedFlowFinishedResponses(FinishingCommandSuccessfulResponse.class, CompensationCommandSucceededResponse.class)
+                    allowedFlowFinishedResponses(FinishingCommandSuccessfulResponse.class, INIT_EVENT.COMPENSATION_SUCCEEDED_RESPONSE.getClass())
             );
 
             this.flowStateHandler = businessFlowMock.getFlowStateHandler();

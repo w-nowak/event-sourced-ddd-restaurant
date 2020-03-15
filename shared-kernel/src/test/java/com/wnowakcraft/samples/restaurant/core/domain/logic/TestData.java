@@ -14,7 +14,7 @@ public class TestData {
     static class INIT_EVENT {
         static final TestInitEvent EVENT = new TestInitEvent();
         static final Command COMPENSATION_COMMAND = new InitEventCompensationCommand();
-        static final CompensationCommandSucceededResponse COMPENSATION_SUCCEEDED_RESPONSE = new CompensationCommandSucceededResponse(UUID.randomUUID());
+        static final Response COMPENSATION_SUCCEEDED_RESPONSE = new InitEventCompensationResponse(UUID.randomUUID());
     }
 
     static class FIRST_COMMAND {
@@ -129,6 +129,12 @@ public class TestData {
     }
 
     private static class InitEventCompensationCommand extends AbstractCommand {}
+
+    static class InitEventCompensationResponse extends TestAbstractCommandResponse {
+        InitEventCompensationResponse(UUID responseUuid) {
+            super(responseUuid);
+        }
+    }
 
     @RequiredArgsConstructor(access = PROTECTED)
     static class TestAbstractCommandResponse implements Response {
