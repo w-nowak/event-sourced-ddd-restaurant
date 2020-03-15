@@ -17,7 +17,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.UUID;
 
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.failureWithCompensation;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.failureWithRetry;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.success;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.StateIndexAndCompensation.normalFlowAt;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock.allowedFlowFinishedResponses;
@@ -29,15 +31,15 @@ import static org.mockito.BDDMockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 class DefaultBusinessFlowProvisionerITTest {
-    private static final int FLOW_FULLY_COMPENSATED_STATE_INDEX =  -2;
-    private static final int INIT_EVENT_STATE_INDEX =  -1;
+    private static final int FLOW_FULLY_COMPENSATED_STATE_INDEX =  -1;
+    private static final int INIT_EVENT_STATE_INDEX =  0;
     private static final int INIT_EVENT_HANDLED_STATE_INDEX = handled(INIT_EVENT_STATE_INDEX);
-    private static final int FIRST_COMMAND_STATE_INDEX = 0;
+    private static final int FIRST_COMMAND_STATE_INDEX = 1;
     private static final int FIRST_COMMAND_HANDLED_STATE_INDEX = handled(FIRST_COMMAND_STATE_INDEX);
-    private static final int QUERY_FOR_DATA_STATE_INDEX = 1;
+    private static final int QUERY_FOR_DATA_STATE_INDEX = 2;
     private static final int QUERY_FOR_DATA_HANDLED_STATE_INDEX = handled(QUERY_FOR_DATA_STATE_INDEX);
-    private static final int SECOND_COMMAND_STATE_INDEX = 2;
-    private static final int FINISHING_COMMAND_STATE_INDEX = 3;
+    private static final int SECOND_COMMAND_STATE_INDEX = 3;
+    private static final int FINISHING_COMMAND_STATE_INDEX = 4;
     private static final int FINISHING_COMMAND_HANDLED_STATE_INDEX = handled(FINISHING_COMMAND_STATE_INDEX);
 
     private Fixture fixture;

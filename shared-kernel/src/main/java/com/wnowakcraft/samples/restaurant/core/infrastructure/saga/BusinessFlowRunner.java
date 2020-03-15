@@ -117,8 +117,7 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
     @Slf4j
     @RequiredArgsConstructor(access = PRIVATE)
     private static class BusinessFlowHandler<E extends Event<?>, S> {
-        private static final short INDEX_OF_FULLY_COMPENSATED_STATE = -2;
-        private static final short INIT_EVENT_COMPENSATION_STEP_INDEX = -1;
+        private static final short INDEX_OF_FULLY_COMPENSATED_STATE = -1;
         private final BusinessFlowDefinition<E, S> businessFlowDefinition;
         private StateEnvelope<S> flowCurrentState;
 
@@ -147,9 +146,7 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
 
             var flowCurrentStateIndex = flowCurrentState.getStateIndex();
 
-            return flowCurrentStateIndex == INIT_EVENT_COMPENSATION_STEP_INDEX ?
-                    BusinessFlowStep.emptyBusinessFlowStep() :
-                    businessFlowDefinition.getBusinessFlowSteps().get(flowCurrentStateIndex);
+            return businessFlowDefinition.getBusinessFlowSteps().get(flowCurrentStateIndex);
         }
 
         @LogBefore(value = "Received response accepted, consuming...", level = DEBUG)
@@ -227,9 +224,7 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
         }
 
         private Optional<Function<S, ? extends Command>> getNextCompensationCommandProvider() {
-            return flowCurrentState.getStateIndex() == INIT_EVENT_COMPENSATION_STEP_INDEX ?
-                    businessFlowDefinition.getFlowTriggerCompensationCommandProvider() :
-                    currentStepDefinition().getCompensatingCommandFnProvider();
+            return currentStepDefinition().getCompensatingCommandFnProvider();
         }
 
         boolean isNotYetInitialized() {
@@ -282,7 +277,7 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
         }
 
         public StateEnvelope(S state) {
-            this(0, state, false);
+            this(1, state, false);
         }
 
         StateEnvelope(int stateIndex, S state, boolean compensation) {
