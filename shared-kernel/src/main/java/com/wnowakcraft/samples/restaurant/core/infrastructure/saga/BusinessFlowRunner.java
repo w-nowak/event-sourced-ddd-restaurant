@@ -128,8 +128,13 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
         private boolean accepts(Response commandResponse) {
             requireFlowNotYetComplete();
 
-            return isCompensationSucceededResponseWhenCompensating(commandResponse) ||
+            return hasNoResponseMappingDefined() ||
+                    isCompensationSucceededResponseWhenCompensating(commandResponse) ||
                     isAnyResponseMappingFor(commandResponse.getClass());
+        }
+
+        private boolean hasNoResponseMappingDefined() {
+            return currentStepDefinition().getResponseMapping().isEmpty();
         }
 
         private boolean isCompensationSucceededResponseWhenCompensating(Response commandResponse) {
@@ -181,7 +186,7 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
         }
 
         private Runnable onlyAdvanceFlowStateWhenCompensationSucceeded(Response response) {
-            return isCompensationSucceededResponseWhenCompensating(response) ?
+            return isCompensationSucceededResponseWhenCompensating(response) || hasNoResponseMappingDefined() ?
                     this::advanceFlowCurrentState : Runnables.doNothing();
         }
 
