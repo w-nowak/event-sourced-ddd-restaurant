@@ -18,12 +18,12 @@ import static lombok.AccessLevel.PRIVATE;
 
 @Getter
 @RequiredArgsConstructor
-public class BusinessFlowDefinition<E extends Event, S> {
+public class BusinessFlowDefinition<E extends Event<?>, S> {
     private final Class<E> flowTriggerEventClass;
     private final Function<E, S> flowInitStateProvider;
     private final List<BusinessFlowStep<S>> businessFlowSteps;
 
-    public static <E extends Event, S> OnResponse<E, S> startWith(Class<E> event, Function<E, S> flowInitStateProvider) {
+    public static <E extends Event<?>, S> OnResponse<E, S> startWith(Class<E> event, Function<E, S> flowInitStateProvider) {
         requireNonNull(event, "event");
 
         return new BusinessFlowBuilder<>(event, flowInitStateProvider);
@@ -65,7 +65,7 @@ public class BusinessFlowDefinition<E extends Event, S> {
     }
 
     @RequiredArgsConstructor(access = PRIVATE)
-    private static class BusinessFlowBuilder<E extends Event, S> implements ThenSend<E, S>, OnResponse<E, S>, On<E, S> {
+    private static class BusinessFlowBuilder<E extends Event<?>, S> implements ThenSend<E, S>, OnResponse<E, S>, On<E, S> {
         private final Class<E> flowTriggerEventClass;
         private final List<BusinessFlowStep<S>> businessFlowSteps = new LinkedList<>();
         private final Function<E, S> flowInitStateProvider;
@@ -111,6 +111,7 @@ public class BusinessFlowDefinition<E extends Event, S> {
             private Function<S, ? extends Command> compensatingCommandProvider;
 
             @Override
+            @SuppressWarnings("unchecked")
             public <M extends Message> OnResponseFinalizable<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer) {
                 this.responseMapping.put(message, (BiConsumer<Message, S>)responseMessageConsumer);
                 return this;
@@ -161,32 +162,33 @@ public class BusinessFlowDefinition<E extends Event, S> {
         }
     }
 
-    public interface ThenSend<E extends Event, S> {
+    public interface ThenSend<E extends Event<?>, S> {
         <C extends Command> On<E, S> thenSend(Function<S, C> nextCommandProvider);
     }
 
-    public interface Finalizable<E extends Event, S> {
+    public interface Finalizable<E extends Event<?>, S> {
         BusinessFlowDefinition<E, S> done();
     }
 
-    public interface ThenSendFinalizable<E extends Event, S>  extends ThenSend<E, S>, Finalizable<E, S> {
+    public interface ThenSendFinalizable<E extends Event<?>, S>  extends ThenSend<E, S>, Finalizable<E, S> {
     }
 
-    public interface OnResponse <E extends  Event, S> extends ThenSend<E, S> {
+    public interface OnResponse <E extends  Event<?>, S> extends ThenSend<E, S> {
         static <S> MarkerConsumer<S> success() { return new MarkerSuccessConsumer<>(); }
         static <S> MarkerConsumer<S> failureWithRetry() { return  new MarkerFailureWithRetryConsumer<>(); }
         static <S> MarkerConsumer<S> failureWithCompensation() { return  new MarkerFailureWithCompensateConsumer<>(); }
+        @SuppressWarnings("unchecked")
         static <S, M extends Message> MarkerConsumer<S> failureWithCompensation(BiConsumer<? super M, S> targetConsumer) { return  new MarkerFailureWithCompensateConsumer<>((BiConsumer<Message, S>)targetConsumer); }
         <M extends Message> OnResponse<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer);
         <C extends Command> ThenSend<E, S> compensateBy(Function<S, ? extends C> compensatingCommandProvider);
     }
 
-    public interface OnResponseFinalizable<E extends  Event, S> extends OnResponse<E, S>, Finalizable<E, S> {
+    public interface OnResponseFinalizable<E extends  Event<?>, S> extends OnResponse<E, S>, Finalizable<E, S> {
         <M extends Message> OnResponseFinalizable<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer);
         <C extends Command> ThenSendFinalizable<E, S> compensateBy(Function<S, ? extends C> compensatingCommandProvider);
     }
 
-    public interface On<E extends Event, S> {
+    public interface On<E extends Event<?>, S> {
         <M extends Message> OnResponseFinalizable<E, S> on(Class<M> message, BiConsumer<? super M, S> responseMessageConsumer);
     }
 }
