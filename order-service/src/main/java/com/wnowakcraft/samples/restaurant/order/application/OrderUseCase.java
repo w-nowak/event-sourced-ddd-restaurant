@@ -7,13 +7,14 @@ import com.wnowakcraft.samples.restaurant.order.domain.model.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = { @Inject })
 public class OrderUseCase {
     @NonNull private final EventStore<OrderEvent, Order, Order.Id> eventStore;
     @NonNull private final SnapshotRepository<OrderSnapshot, Order.Id> snapshotRepository;
