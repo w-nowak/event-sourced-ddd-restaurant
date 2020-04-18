@@ -17,20 +17,22 @@ public abstract class DomainBoundBusinessId implements Id<String> {
     public static final String STRING_ID_REGEX = "\\w+" + SEPARATOR + "\\w+" + SEPARATOR + "[A-Z]" + SEPARATOR + FIRST_THREE_UUUID_GROUPS_REGEX;
 
     private final String idValue;
+    public final String domainName;
+    public final String domainObjectName;
 
-    protected DomainBoundBusinessId(String domainObjectId, String domainObjectName, char domainObjectType) {
-        requireNonEmpty(domainObjectId, "domainObjectId");
-        requireNonEmpty(domainObjectName, "domainObjectName");
+    protected DomainBoundBusinessId(String domainName, String domainObjectName, char domainObjectType) {
+        this.domainName = requireNonEmpty(domainName, "domainName");
+        this.domainObjectName = requireNonEmpty(domainObjectName, "domainObjectName");
 
-        idValue = idPrefixOf(domainObjectId, domainObjectName, domainObjectType)
+        idValue = idPrefixOf(domainName, domainObjectName, domainObjectType)
                 + SEPARATOR
                 + threeMostSignificantComponentsOf(UUID.randomUUID());
     }
 
     protected DomainBoundBusinessId(String domainObjectId, String domainName, String domainObjectName, char domainObjectType) {
         requireNonEmpty(domainObjectId, "domainObjectId");
-        requireNonEmpty(domainName, "domainName");
-        requireNonEmpty(domainObjectName, "domainObjectName");
+        this.domainName = requireNonEmpty(domainName, "domainName");
+        this.domainObjectName = requireNonEmpty(domainObjectName, "domainObjectName");
         verifyAggregateIdCorrectness(domainObjectId, domainName, domainObjectName, domainObjectType);
 
         idValue = domainObjectId;
