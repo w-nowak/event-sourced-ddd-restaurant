@@ -19,15 +19,15 @@ public interface Event<ID extends Aggregate.Id> {
     @RequiredArgsConstructor(access = PRIVATE)
     class SequenceNumber {
         public static SequenceNumber NOT_ASSIGNED = new SequenceNumber(-1);
-        public final long sequenceNumber;
+        public final long number;
 
         public static SequenceNumber of(long sequenceNumber) {
-            requireThat(sequenceNumber >= 0, "sequenceNumber needs to be a positive integer");
+            requireThat(sequenceNumber > NOT_ASSIGNED.number, "sequenceNumber needs to be a positive integer");
             return new SequenceNumber(sequenceNumber);
         }
 
         public SequenceNumber next() {
-            return new SequenceNumber(sequenceNumber + 1);
+            return new SequenceNumber(number + 1);
         }
     }
 }

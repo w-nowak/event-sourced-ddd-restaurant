@@ -20,7 +20,6 @@ public interface Aggregate<ID extends Aggregate.Id, E extends Event> {
     abstract class Id extends DomainBoundBusinessId {
         private static final char TYPE_SYMBOL = 'A';
 
-
         protected Id(String domainName, String domainObjectName) {
             super(domainName, domainObjectName, TYPE_SYMBOL);
         }
@@ -30,17 +29,15 @@ public interface Aggregate<ID extends Aggregate.Id, E extends Event> {
         }
     }
 
-    @Getter
     @ToString
     @EqualsAndHashCode
     @AllArgsConstructor(access = PRIVATE)
     final class Version {
-        public final static Version NONE = new Version(0);
-
-        private final long number;
+        public final static Version NONE = new Version(-1);
+        public final long number;
 
         public static Version of(long number) {
-            Preconditions.requireThat(number > 0, "The version number needs to be positive integer");
+            Preconditions.requireThat(number > NONE.number, "The version number needs to be positive integer");
 
             return new Version(number);
         }
