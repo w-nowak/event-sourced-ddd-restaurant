@@ -1,0 +1,14 @@
+syntax="proto3";
+
+package restaurant.orderService;
+
+option java_package = "com.wnowakcraft.samples.restaurant.order.infrastructure.data.message";
+option java_outer_classname = "OrderApprovedEventMessageProto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+message OrderApprovedEventMessage {
+    string order_id = 1;
+    google.protobuf.Timestamp date_generated = 2;
+}
