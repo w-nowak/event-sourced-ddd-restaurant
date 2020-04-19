@@ -12,6 +12,7 @@
     <modules>
         <module>shared-kernel</module>
         <module>order-service</module>
+        <module>order-service-infrastructure-kafka</module>
     </modules>
 
     <properties>
