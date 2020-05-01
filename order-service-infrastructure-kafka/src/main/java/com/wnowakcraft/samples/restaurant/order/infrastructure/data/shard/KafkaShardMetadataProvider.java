@@ -32,7 +32,11 @@ public class KafkaShardMetadataProvider implements ShardMetadataProvider {
 
 
     private long getCurrentOffsetForConsumer(Consumer<String, Object> consumer) {
-        return consumer.endOffsets(consumer.assignment()).values().iterator().next() - 1;
+        return consumer.endOffsets(consumer.assignment()).values().stream()
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(offset -> offset - 1)
+                .orElse(SHARD_OFFSET_UNKNOWN);
     }
 
     private long handleOffsetResult(long offset, Throwable error, ShardRef shardRef) {
