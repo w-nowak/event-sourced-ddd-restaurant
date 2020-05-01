@@ -11,6 +11,8 @@ import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -55,12 +57,32 @@ public class KafkaShardMetadataProvider implements ShardMetadataProvider {
     }
 
     private long latestOffsetFor(Consumer<String, Object> consumer, ShardRef shardRef, Instant beforeGivenPointInTime) {
-        return consumer
-                .offsetsForTimes(Map.of(KafkaPartition.of(shardRef), beforeGivenPointInTime.getEpochSecond()))
-                .values().stream()
-                .findFirst()
-                .map(OffsetAndTimestamp::offset)
+        return offsetFor(consumer, shardRef, beforeGivenPointInTime)
                 .map(offset -> offset - 1) //minus one as Kafka returns first record at or after given point in time, we need last one before then
+                .orElse(ShardMetadataProvider.SHARD_OFFSET_UNKNOWN);
+    }
+
+    private Optional<Long> offsetFor(Consumer<String, Object> consumer, ShardRef shardRef, Instant atGivenPointInTime) {
+        return consumer
+                .offsetsForTimes(Map.of(KafkaPartition.of(shardRef), atGivenPointInTime.getEpochSecond()))
+                .values().stream()
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(OffsetAndTimestamp::offset);
+    }
+
+    @Override
+    public CompletableFuture<Long> getFirstOffsetFor(ShardRef shardRef, Instant afterOrEqualGivenPointInTime) {
+        return kafkaConsumerFactory
+                .doConsumerRead(
+                        shardRef,
+                        consumer -> firstOffsetFor(consumer, shardRef, afterOrEqualGivenPointInTime)
+                )
+                .handle((offset, error) -> handleOffsetResult(offset, error, shardRef));
+    }
+
+    private long firstOffsetFor(Consumer<String, Object> consumer, ShardRef shardRef, Instant afterOrEqualGivenPointInTime) {
+        return offsetFor(consumer, shardRef, afterOrEqualGivenPointInTime)
                 .orElse(ShardMetadataProvider.SHARD_OFFSET_UNKNOWN);
     }
 }

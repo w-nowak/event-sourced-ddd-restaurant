@@ -23,8 +23,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-import static com.google.common.collect.Iterables.getLast;
+import static com.google.common.collect.Iterables.getFirst;
 import static com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager.ShardingStrategy.ShardingType.SNAPSHOT_STORE;
 
 @Slf4j
@@ -78,6 +79,13 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
 
     @Override
     public Optional<S> findLatestSnapshotFor(AID aggregateId, Event.SequenceNumber beforeGivenEventSequenceNumber) {
+        Predicate<S> snapshotBeforeGivenSequenceNumberPredicate =
+                (snapshot) -> snapshot.getAggregateVersion().number < beforeGivenEventSequenceNumber.number;
+
+        return findLatestSnapshotWhichSatisfies(aggregateId, snapshotBeforeGivenSequenceNumberPredicate);
+    }
+
+    private Optional<S> findLatestSnapshotWhichSatisfies(AID aggregateId, Predicate<S> snapshotCriteria) {
         var shardRef = shardManager.getShardForBusinessIdOf(aggregateId);
         var shardEndOffsetFuture = shardMetadataProvider.getLastRecordOffsetForShard(shardRef);
         var shardEndOffset = offsetOf(shardEndOffsetFuture);
@@ -86,13 +94,13 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
             return Optional.empty();
         }
 
-        S lastFoundSnapshotBeforeGivenSequenceNumber = null;
+        S latestFoundSnapshotFulfillingCriteria = null;
         try(Consumer<String, Message> consumer = consumerFactory.createConsumerFor(shardRef)) {
 
             consumer.assignment().forEach(assignment -> consumer.seek(assignment, shardEndOffset));
-            var lastSnapshot = getLast(kafkaRecordReader.readLimitedNumberOfRecordsFrom(consumer, aggregateId, READ_ONE_RECORD), nullWhenEmpty);
+            var lastSnapshot = getFirst(kafkaRecordReader.readLimitedNumberOfRecordsFrom(consumer, aggregateId, READ_ONE_RECORD), nullWhenEmpty);
 
-            if(lastSnapshot != null && lastSnapshot.getAggregateVersion().number < beforeGivenEventSequenceNumber.number) {
+            if(lastSnapshot != null && snapshotCriteria.test(lastSnapshot)) {
                 return Optional.of(lastSnapshot);
             }
 
@@ -109,8 +117,8 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
                 if(!foundSnapshots.isEmpty()) {
                     var foundSnapshot = foundSnapshots.iterator().next();
 
-                    if(foundSnapshot.getAggregateVersion().number < beforeGivenEventSequenceNumber.number) {
-                        lastFoundSnapshotBeforeGivenSequenceNumber = foundSnapshot;
+                    if(snapshotCriteria.test(foundSnapshot)) {
+                        latestFoundSnapshotFulfillingCriteria = foundSnapshot;
                         searchStrategy = searchStrategy.searchUpper();
                     } else {
                         searchStrategy = searchStrategy.searchLower();
@@ -121,7 +129,7 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
             }
         }
 
-        return Optional.ofNullable(lastFoundSnapshotBeforeGivenSequenceNumber);
+        return Optional.ofNullable(latestFoundSnapshotFulfillingCriteria);
     }
 
     @Override
@@ -133,8 +141,11 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
     }
 
     @Override
-    public Optional<S> findFirstSnapshotFor(AID aggregateId, Instant afterGivenPointInTime) {
-        return Optional.empty();
+    public Optional<S> findFirstSnapshotFor(AID aggregateId, Instant afterOrEqualGivenPointInTime) {
+        Function<ShardRef, CompletableFuture<Long>> latestOffsetBeforeGivenPointInTimeProvider =
+                (shardRef) -> shardMetadataProvider.getFirstOffsetFor(shardRef, afterOrEqualGivenPointInTime);
+
+        return findAppropriateSnapshotFor(aggregateId, latestOffsetBeforeGivenPointInTimeProvider, Iterables::getFirst, nullWhenEmpty);
     }
 
     @Override

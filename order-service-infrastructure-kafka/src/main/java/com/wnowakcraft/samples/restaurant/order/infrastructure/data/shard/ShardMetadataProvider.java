@@ -7,4 +7,5 @@ public interface ShardMetadataProvider {
     long SHARD_OFFSET_UNKNOWN = -1;
     CompletableFuture<Long> getLastRecordOffsetForShard(ShardManager.ShardRef shardRef);
     CompletableFuture<Long> getLatestOffsetFor(ShardManager.ShardRef shardRef, Instant beforeGivenPointInTime);
+    CompletableFuture<Long> getFirstOffsetFor(ShardManager.ShardRef shardRef, Instant afterOrEqualGivenPointInTime);
 }
