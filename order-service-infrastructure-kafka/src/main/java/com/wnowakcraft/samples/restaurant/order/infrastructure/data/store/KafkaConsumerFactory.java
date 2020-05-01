@@ -1,12 +1,12 @@
 package com.wnowakcraft.samples.restaurant.order.infrastructure.data.store;
 
+import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.KafkaPartition;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager.ShardRef;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
 
 import javax.inject.Inject;
 import java.util.Properties;
@@ -33,7 +33,7 @@ public class KafkaConsumerFactory {
         consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "com.wnowakcraft.samples.restaurant.order.infrastructure.kafka.ProtobuffDeserializer");
 
         var kafkaConsumer = new KafkaConsumer<String, V>(consumerProperties);
-        kafkaConsumer.assign(singleton(new TopicPartition(shardRef.topicName, shardRef.shardId)));
+        kafkaConsumer.assign(singleton(KafkaPartition.of(shardRef)));
 
         return kafkaConsumer;
     }
