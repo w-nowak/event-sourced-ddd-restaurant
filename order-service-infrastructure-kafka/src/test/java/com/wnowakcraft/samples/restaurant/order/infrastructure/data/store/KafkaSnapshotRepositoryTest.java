@@ -168,7 +168,7 @@ class KafkaSnapshotRepositoryTest {
         }
 
         private void givenLastSnapshotRecordOffsetIs(long lastRecordOffset) {
-            given(shardMetadataProvider.getLastRecordOffsetFor(SHARD_REF)).willReturn(CompletableFuture.completedFuture(lastRecordOffset));
+            given(shardMetadataProvider.getLastRecordOffsetForShard(SHARD_REF)).willReturn(CompletableFuture.completedFuture(lastRecordOffset));
         }
 
         void givenKafkaConsumerIsProvided() {

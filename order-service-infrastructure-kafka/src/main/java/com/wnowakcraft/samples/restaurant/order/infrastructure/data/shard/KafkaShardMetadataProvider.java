@@ -19,7 +19,7 @@ public class KafkaShardMetadataProvider implements ShardMetadataProvider {
     @NonNull private final KafkaConsumerFactory kafkaConsumerFactory;
 
     @Override
-    public CompletableFuture<Long> getLastRecordOffsetFor(ShardRef shardRef) {
+    public CompletableFuture<Long> getLastRecordOffsetForShard(ShardRef shardRef) {
         return kafkaConsumerFactory
                 .doConsumerRead(
                         shardRef,

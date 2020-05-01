@@ -1,11 +1,13 @@
 package com.wnowakcraft.samples.restaurant.order.infrastructure.data.store;
 
+import com.google.common.collect.Iterables;
 import com.google.protobuf.Message;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Snapshot;
 import com.wnowakcraft.samples.restaurant.core.domain.model.SnapshotRepository;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager;
+import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager.ShardRef;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardMetadataProvider;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.store.RecordSearchStrategyFactory.SearchStrategy;
 import lombok.NonNull;
@@ -15,11 +17,13 @@ import org.apache.kafka.clients.consumer.Consumer;
 
 import javax.inject.Inject;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-import static com.google.common.collect.Iterables.getFirst;
 import static com.google.common.collect.Iterables.getLast;
 import static com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager.ShardingStrategy.ShardingType.SNAPSHOT_STORE;
 
@@ -37,8 +41,13 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
 
     @Override
     public Optional<S> findLatestSnapshotFor(AID aggregateId) {
+        return findAppropriateSnapshotFor(aggregateId, shardMetadataProvider::getLastRecordOffsetForShard, Iterables::getFirst, nullWhenEmpty);
+    }
+
+    private Optional<S> findAppropriateSnapshotFor(AID aggregateId, Function<ShardRef, CompletableFuture<Long>> snapshotOffsetFutureProviderForShardRef,
+                                                   BiFunction<Collection<S>, S, S> snapshotExtractor, S defaultSnapshotWhenNotFound) {
         var shardRef = shardManager.getShardForBusinessIdOf(aggregateId);
-        var shardOffsetFuture = shardMetadataProvider.getLastRecordOffsetFor(shardRef);
+        var shardOffsetFuture = snapshotOffsetFutureProviderForShardRef.apply(shardRef);
         var shardOffset = offsetOf(shardOffsetFuture);
 
         if(shardOffset == ShardMetadataProvider.SHARD_OFFSET_UNKNOWN) {
@@ -49,12 +58,11 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
         try(Consumer<String, Message> consumer = consumerFactory.createConsumerFor(shardRef)) {
             consumer.assignment().forEach(assignment -> consumer.seek(assignment, shardOffset));
 
-            lastSnapshot = getLast(kafkaRecordReader.readRecordsFrom(consumer, aggregateId), nullWhenEmpty);
+            lastSnapshot = snapshotExtractor.apply(kafkaRecordReader.readRecordsFrom(consumer, aggregateId), defaultSnapshotWhenNotFound);
         }
 
         return Optional.ofNullable(lastSnapshot);
     }
-
 
     private long offsetOf(CompletableFuture<Long> currentOffsetFuture) {
         var offset = 0L;
@@ -71,8 +79,8 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
     @Override
     public Optional<S> findLatestSnapshotFor(AID aggregateId, Event.SequenceNumber beforeGivenEventSequenceNumber) {
         var shardRef = shardManager.getShardForBusinessIdOf(aggregateId);
-            var shardEndOffsetFuture = shardMetadataProvider.getLastRecordOffsetFor(shardRef);
-            var shardEndOffset = offsetOf(shardEndOffsetFuture);
+        var shardEndOffsetFuture = shardMetadataProvider.getLastRecordOffsetForShard(shardRef);
+        var shardEndOffset = offsetOf(shardEndOffsetFuture);
 
         if(shardEndOffset == ShardMetadataProvider.SHARD_OFFSET_UNKNOWN) {
             return Optional.empty();
@@ -118,23 +126,10 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
 
     @Override
     public Optional<S> findLatestSnapshotFor(AID aggregateId, Instant beforeGivenPointInTime) {
-        var shardRef = shardManager.getShardForBusinessIdOf(aggregateId);
-        var latestOffsetBeforeGivenPointInTimeFuture = shardMetadataProvider.getLatestOffsetFor(shardRef, beforeGivenPointInTime);
-        var latestOffsetBeforeGivenPointInTime = offsetOf(latestOffsetBeforeGivenPointInTimeFuture);
+        Function<ShardRef, CompletableFuture<Long>> latestOffsetBeforeGivenPointInTimeProvider =
+                (shardRef) -> shardMetadataProvider.getLatestOffsetFor(shardRef, beforeGivenPointInTime);
 
-        if(latestOffsetBeforeGivenPointInTime == ShardMetadataProvider.SHARD_OFFSET_UNKNOWN) {
-            return Optional.empty();
-        }
-
-
-        S lastSnapshot = null;
-        try(Consumer<String, Message> consumer = consumerFactory.createConsumerFor(shardRef)) {
-            consumer.assignment().forEach(assignment -> consumer.seek(assignment, latestOffsetBeforeGivenPointInTime));
-
-            lastSnapshot = getFirst(kafkaRecordReader.readLimitedNumberOfRecordsFrom(consumer, aggregateId, READ_ONE_RECORD), nullWhenEmpty);
-        }
-
-        return Optional.ofNullable(lastSnapshot);
+        return findAppropriateSnapshotFor(aggregateId, latestOffsetBeforeGivenPointInTimeProvider, Iterables::getFirst, nullWhenEmpty);
     }
 
     @Override

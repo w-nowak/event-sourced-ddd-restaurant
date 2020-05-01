@@ -5,6 +5,6 @@ import java.util.concurrent.CompletableFuture;
 
 public interface ShardMetadataProvider {
     long SHARD_OFFSET_UNKNOWN = -1;
-    CompletableFuture<Long> getLastRecordOffsetFor(ShardManager.ShardRef shardRef);
+    CompletableFuture<Long> getLastRecordOffsetForShard(ShardManager.ShardRef shardRef);
     CompletableFuture<Long> getLatestOffsetFor(ShardManager.ShardRef shardRef, Instant beforeGivenPointInTime);
 }

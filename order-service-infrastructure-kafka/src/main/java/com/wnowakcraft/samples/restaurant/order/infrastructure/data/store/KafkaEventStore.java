@@ -101,7 +101,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
     @Override
     public void append(ID businessId, Aggregate.Version aggregateVersion, Collection<E> events) {
         var shardRef = shardManager.getShardForBusinessIdOf(businessId);
-        var shardCurrentOffsetFuture = shardMetadataProvider.getLastRecordOffsetFor(shardRef);
+        var shardCurrentOffsetFuture = shardMetadataProvider.getLastRecordOffsetForShard(shardRef);
         var outgoingRecords = createKafkaRecordsFor(events, shardRef, businessId);
 
         var expectedOffset = aggregateVersion.number;
