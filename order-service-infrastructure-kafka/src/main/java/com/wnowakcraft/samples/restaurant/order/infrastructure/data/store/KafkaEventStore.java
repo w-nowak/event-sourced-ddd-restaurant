@@ -22,8 +22,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -33,6 +31,7 @@ import static java.util.List.copyOf;
 @Slf4j
 @RequiredArgsConstructor
 public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID extends Aggregate.Id> implements EventStore<E, A, ID> {
+    private static final long DEFAULT_SHARD_OFFSET = 0;
     @NonNull private final DataConverter<E, Message> converter;
     @NonNull private final KafkaConsumerFactory consumerFactory;
     @NonNull private final KafkaProducerFactory producerFactory;
@@ -104,7 +103,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
         var outgoingRecords = createKafkaRecordsFor(events, shardRef, businessId);
 
         var expectedOffset = aggregateVersion.number;
-        long currentOffset = offsetOf(shardCurrentOffsetFuture);
+        long currentOffset = ShardMetadataProvider.offsetOf(shardCurrentOffsetFuture, DEFAULT_SHARD_OFFSET);
 
         if(currentOffset > expectedOffset) {
             throw new ConcurrentLogAppendingException(shardRef, currentOffset, expectedOffset);
@@ -119,19 +118,6 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
                 .map(message -> new ProducerRecord<>(shardRef.topicName, shardRef.shardId, businessId.getValue(), message))
                 .collect(Collectors.toUnmodifiableList());
     }
-
-    private long offsetOf(CompletableFuture<Long> currentOffsetFuture) {
-        var offset = 0L;
-
-        try {
-            offset = currentOffsetFuture.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            log.error(ex.getMessage(), ex);
-        }
-
-        return offset;
-    }
-
 
     @Getter
     @RequiredArgsConstructor

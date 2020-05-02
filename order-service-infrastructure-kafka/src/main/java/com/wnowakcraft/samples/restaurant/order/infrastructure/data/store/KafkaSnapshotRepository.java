@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -34,6 +33,7 @@ import static com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard
 @RequiredArgsConstructor(onConstructor_ = { @Inject })
 public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, AID>, AID extends Aggregate.Id> implements SnapshotRepository<S, AID> {
     private static final short READ_ONE_RECORD = 1;
+    private static final long DEFAULT_SHARD_OFFSET = 0;
 
     private S nullWhenEmpty = null;
     @NonNull private final KafkaConsumerFactory consumerFactory;
@@ -53,7 +53,7 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
                                                    BiFunction<Collection<S>, S, S> snapshotExtractor, S defaultSnapshotWhenNotFound) {
         var shardRef = shardManager.getShardForBusinessIdOf(aggregateId);
         var shardOffsetFuture = snapshotOffsetFutureProviderForShardRef.apply(shardRef);
-        var shardOffset = offsetOf(shardOffsetFuture);
+        var shardOffset = ShardMetadataProvider.offsetOf(shardOffsetFuture, DEFAULT_SHARD_OFFSET);
 
         if(shardOffset == ShardMetadataProvider.SHARD_OFFSET_UNKNOWN) {
             return Optional.empty();
@@ -69,18 +69,6 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
         return Optional.ofNullable(lastSnapshot);
     }
 
-    private long offsetOf(CompletableFuture<Long> currentOffsetFuture) {
-        var offset = 0L;
-
-        try {
-            offset = currentOffsetFuture.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            log.error(ex.getMessage(), ex);
-        }
-
-        return offset;
-    }
-
     @Override
     public Optional<S> findLatestSnapshotFor(AID aggregateId, Event.SequenceNumber beforeGivenEventSequenceNumber) {
         Predicate<S> snapshotBeforeGivenSequenceNumberPredicate =
@@ -92,7 +80,7 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
     private Optional<S> findLatestSnapshotWhichSatisfies(AID aggregateId, Predicate<S> snapshotCriteria) {
         var shardRef = shardManager.getShardForBusinessIdOf(aggregateId);
         var shardEndOffsetFuture = shardMetadataProvider.getLastRecordOffsetForShard(shardRef);
-        var shardEndOffset = offsetOf(shardEndOffsetFuture);
+        var shardEndOffset = ShardMetadataProvider.offsetOf(shardEndOffsetFuture, DEFAULT_SHARD_OFFSET);
 
         if(shardEndOffset == ShardMetadataProvider.SHARD_OFFSET_UNKNOWN) {
             return Optional.empty();
