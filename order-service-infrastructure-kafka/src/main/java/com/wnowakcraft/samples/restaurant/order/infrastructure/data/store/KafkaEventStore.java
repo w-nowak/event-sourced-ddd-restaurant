@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -111,19 +110,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
             throw new ConcurrentLogAppendingException(shardRef, currentOffset, expectedOffset);
         }
 
-        outgoingRecords.forEach(record -> producer.send(record, handleDispatchResultFor(record)));
-    }
-
-    private Callback handleDispatchResultFor(ProducerRecord<String, Message> record) {
-        return (metadata, error) -> {
-                if(error == null) {
-                    log.info("Record with key of {} appended successfully to event store", record.key());
-                } else {
-                    log.error("Appending new log entry with key of {} has failed due to: {}", record.key(), error.getMessage(), error);
-                }
-
-                log.atDebug().addArgument(record::toString).log("Processed record: {}");
-        };
+        outgoingRecords.forEach(record -> producer.send(record, KafkaRecordAppendingHandler.handleAddRecordResultFor(record)));
     }
 
     private List<ProducerRecord<String, Message>> createKafkaRecordsFor(Collection<E> events, ShardManager.ShardRef shardRef, ID businessId) {

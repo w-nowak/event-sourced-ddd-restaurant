@@ -6,6 +6,7 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Snapshot;
 import com.wnowakcraft.samples.restaurant.core.domain.model.SnapshotRepository;
+import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.SnapshotConverter;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager.ShardRef;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardMetadataProvider;
@@ -14,6 +15,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 import javax.inject.Inject;
 import java.time.Instant;
@@ -35,10 +37,12 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
 
     private S nullWhenEmpty = null;
     @NonNull private final KafkaConsumerFactory consumerFactory;
+    @NonNull private final KafkaProducerFactory producerFactory;
     @ShardManager.ShardingStrategy(SNAPSHOT_STORE) @NonNull private ShardManager shardManager;
     @NonNull private final ShardMetadataProvider shardMetadataProvider;
     @NonNull private final KafkaRecordReader<S> kafkaRecordReader;
     @NonNull private final RecordSearchStrategyFactory recordSearchStrategyFactory;
+    @NonNull private final SnapshotConverter<S, Message> converter;
 
     @Override
     public Optional<S> findLatestSnapshotFor(AID aggregateId) {
@@ -150,6 +154,14 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
 
     @Override
     public void addNewSnapshot(S snapshot) {
+        var shardRef = shardManager.getShardForBusinessIdOf(snapshot.getAggregateId());
 
+        try(var recordProducer = producerFactory.<Message>createProducer()) {
+            var record =  new ProducerRecord<>(
+                    shardRef.topicName, shardRef.shardId, snapshot.getSnapshotId().getValue(), converter.convert(snapshot)
+            );
+
+            recordProducer.send(record, KafkaRecordAppendingHandler.handleAddRecordResultFor(record));
+        }
     }
 }
