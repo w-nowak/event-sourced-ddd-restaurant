@@ -2,21 +2,16 @@ package com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion;
 
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event.SequenceNumber;
-import com.wnowakcraft.samples.restaurant.order.domain.model.*;
+import com.wnowakcraft.samples.restaurant.order.domain.model.Order;
+import com.wnowakcraft.samples.restaurant.order.domain.model.OrderApprovedEvent;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.message.OrderApprovedEventMessage;
-import com.wnowakcraft.samples.restaurant.order.infrastructure.data.message.OrderCreatedEventMessage;
-import lombok.RequiredArgsConstructor;
 
-import javax.inject.Inject;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.stream.Collectors;
 
 @ConcreteDataConverter
 //@RequiredArgsConstructor(onConstructor_ = { @Inject})
-public class OrderApprovedEventDataConverter implements DataConverter<OrderApprovedEvent, OrderApprovedEventMessage> {
+public class OrderApprovedEventMessageConverter implements MessageConverter<OrderApprovedEvent, OrderApprovedEventMessage> {
     @Override
     public OrderApprovedEvent convert(OrderApprovedEventMessage message, long offset) {
         return orderApprovedEventOf(message, offset);
@@ -48,7 +43,7 @@ public class OrderApprovedEventDataConverter implements DataConverter<OrderAppro
     }
 
     @Override
-    public boolean canConvert(Event<?> event) {
-        return OrderApprovedEvent.class == event.getClass();
+    public boolean canConvert(Object eventCandidate) {
+        return OrderApprovedEvent.class == eventCandidate.getClass();
     }
 }

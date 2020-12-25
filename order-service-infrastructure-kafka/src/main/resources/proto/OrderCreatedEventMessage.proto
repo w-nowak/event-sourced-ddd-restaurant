@@ -7,17 +7,12 @@ option java_outer_classname = "OrderCreatedEventMessageProto";
 option java_multiple_files = true;
 
 import "google/protobuf/timestamp.proto";
+import "OrderItemMessageComponent.proto";
 
 message OrderCreatedEventMessage {
     string order_id = 1;
     string customer_id = 2;
     string restaurant_id = 3;
-    repeated OrderItem order_items = 4;
+    repeated OrderItemMessageComponent order_items = 4;
     google.protobuf.Timestamp date_generated = 6;
-
-    message OrderItem {
-        int32 quantity = 1;
-        string name = 2;
-        string menu_item_id = 3;
-    }
 }

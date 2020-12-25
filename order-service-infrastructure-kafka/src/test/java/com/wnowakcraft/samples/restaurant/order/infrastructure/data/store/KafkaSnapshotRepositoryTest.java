@@ -5,6 +5,7 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.TestAggregateId;
 import com.wnowakcraft.samples.restaurant.core.domain.model.TestSnapshot;
+import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.MessageConverter;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.KafkaPartition;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager.ShardRef;
@@ -137,17 +138,19 @@ class KafkaSnapshotRepositoryTest {
         @Mock private ShardManager shardManager;
         @Mock private ShardMetadataProvider shardMetadataProvider;
         @Mock private Consumer<String, Message> recordConsumer;
-        @Mock private KafkaConsumerFactory kafkaConsumerFactory;
+        @Mock private KafkaProducerFactory producerFactory;
+        @Mock private KafkaConsumerFactory consumerFactory;
         @Mock private KafkaRecordReader<TestSnapshot> recordReader;
         @Mock private RecordSearchStrategyFactory recordSearchStrategyFactory;
+        @Mock private MessageConverter<TestSnapshot, Message> snapshotMessageConverter;
         private KafkaSnapshotRepository<TestSnapshot, TestAggregateId> snapshotRepository;
         private TestSnapshot foundSnapshot;
 
         Fixture() {
             snapshotsInTopic = new ArrayList<>();
             MockitoAnnotations.initMocks(this);
-            snapshotRepository = new KafkaSnapshotRepository<>(kafkaConsumerFactory, shardManager, shardMetadataProvider,
-                    recordReader, recordSearchStrategyFactory);
+            snapshotRepository = new KafkaSnapshotRepository<>(consumerFactory, producerFactory, shardManager,
+                    shardMetadataProvider, recordReader, recordSearchStrategyFactory, snapshotMessageConverter);
         }
 
         void givenShardForBusinessId() {
@@ -173,7 +176,7 @@ class KafkaSnapshotRepositoryTest {
 
         void givenKafkaConsumerIsProvided() {
             given(recordConsumer.assignment()).willReturn(Set.of(PARTITION_ASSIGNMENT));
-            given(kafkaConsumerFactory.<Message>createConsumerFor(SHARD_REF)).willReturn(recordConsumer);
+            given(consumerFactory.<Message>createConsumerFor(SHARD_REF)).willReturn(recordConsumer);
         }
 
         void givenRealBinarySearchStrategyIsUsed() {

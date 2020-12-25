@@ -2,7 +2,7 @@ package com.wnowakcraft.samples.restaurant.order.infrastructure.data.store;
 
 import com.google.protobuf.Message;
 import com.wnowakcraft.samples.restaurant.core.domain.model.DomainBoundBusinessId;
-import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.SnapshotConverter;
+import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.MessageConverter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -20,7 +20,7 @@ import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 @RequiredArgsConstructor(onConstructor_ = { @Inject})
 public class KafkaRecordReader<R> {
     private static final Duration FOR_ONE_SECOND = Duration.ofSeconds(1);
-    @NonNull private final SnapshotConverter<R, Message> converter;
+    @NonNull private final MessageConverter<R, Message> snapshotMessageConverter;
 
     public Collection<R> readRecordsFrom(Consumer<String, Message> recordConsumer, DomainBoundBusinessId byBusinessId) {
         requireNonNull(recordConsumer, "recordConsumer");
@@ -48,8 +48,9 @@ public class KafkaRecordReader<R> {
 
         while(!(readRecords = recordConsumer.poll(FOR_ONE_SECOND)).isEmpty() && remainingRecordsLimit > 0) {
             StreamSupport.stream(readRecords.spliterator(), false)
-                    .filter(record -> businessId.getValue().equals(record.key()))
-                    .map(record -> converter.convert(record.value(), record.offset()))
+                    //TODO Consider passing buisness object id explicitly
+                    //.filter(record -> businessId.getValue().equals(record.key()))
+                    .map(record -> snapshotMessageConverter.convert(record.value(), record.offset()))
                     .limit(remainingRecordsLimit)
                     .forEachOrdered(records::add);
 

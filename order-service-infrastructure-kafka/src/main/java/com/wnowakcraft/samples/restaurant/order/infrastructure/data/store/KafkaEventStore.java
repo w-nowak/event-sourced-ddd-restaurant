@@ -4,7 +4,7 @@ import com.google.protobuf.Message;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.EventStore;
-import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.DataConverter;
+import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.MessageConverter;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardMetadataProvider;
 import lombok.Getter;
@@ -32,7 +32,7 @@ import static java.util.List.copyOf;
 @RequiredArgsConstructor
 public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID extends Aggregate.Id> implements EventStore<E, A, ID> {
     private static final long DEFAULT_SHARD_OFFSET = 0;
-    @NonNull private final DataConverter<E, Message> converter;
+    @NonNull private final MessageConverter<E, Message> eventMessageConverter;
     @NonNull private final KafkaConsumerFactory consumerFactory;
     @NonNull private final KafkaProducerFactory producerFactory;
     @NonNull private final ShardMetadataProvider shardMetadataProvider;
@@ -70,7 +70,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
         while(!(readRecords = consumer.poll(Duration.ofSeconds(1))).isEmpty()) {
             StreamSupport.stream(readRecords.spliterator(), false)
                     .filter(record -> businessId.getValue().equals(record.key()))
-                    .map(record -> converter.convert(record.value(), record.offset()))
+                    .map(record -> eventMessageConverter.convert(record.value(), record.offset()))
                     .forEachOrdered(readEvents::add);
         }
         return readEvents;
@@ -114,7 +114,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
 
     private List<ProducerRecord<String, Message>> createKafkaRecordsFor(Collection<E> events, ShardManager.ShardRef shardRef, ID businessId) {
         return events.stream()
-                .map(converter::convert)
+                .map(eventMessageConverter::convert)
                 .map(message -> new ProducerRecord<>(shardRef.topicName, shardRef.shardId, businessId.getValue(), message))
                 .collect(Collectors.toUnmodifiableList());
     }

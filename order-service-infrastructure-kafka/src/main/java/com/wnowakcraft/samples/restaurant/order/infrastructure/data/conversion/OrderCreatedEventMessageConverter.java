@@ -2,21 +2,20 @@ package com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion;
 
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event.SequenceNumber;
-import com.wnowakcraft.samples.restaurant.order.domain.model.*;
+import com.wnowakcraft.samples.restaurant.order.domain.model.CustomerId;
+import com.wnowakcraft.samples.restaurant.order.domain.model.Order;
+import com.wnowakcraft.samples.restaurant.order.domain.model.OrderCreatedEvent;
+import com.wnowakcraft.samples.restaurant.order.domain.model.RestaurantId;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.message.OrderCreatedEventMessage;
-import lombok.RequiredArgsConstructor;
 
-import javax.inject.Inject;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
+
+import static com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.OrderItemConverter.messageOrderItemsOf;
+import static com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.OrderItemConverter.orderItemsOf;
 
 @ConcreteDataConverter
-@RequiredArgsConstructor(onConstructor_ = { @Inject})
-public class OrderCreatedEventDataConverter implements DataConverter<OrderCreatedEvent, OrderCreatedEventMessage> {
+public class OrderCreatedEventMessageConverter implements MessageConverter<OrderCreatedEvent, OrderCreatedEventMessage> {
     @Override
     public OrderCreatedEvent convert(OrderCreatedEventMessage message, long offset) {
         return orderCreatedEventOf(message, offset);
@@ -33,20 +32,6 @@ public class OrderCreatedEventDataConverter implements DataConverter<OrderCreate
        );
     }
 
-    private Collection<OrderItem> orderItemsOf(List<OrderCreatedEventMessage.OrderItem> messageOrderItems) {
-        return messageOrderItems.stream()
-                .map(this::toOrderItem)
-                .collect(Collectors.toUnmodifiableList());
-    }
-
-    private OrderItem toOrderItem(OrderCreatedEventMessage.OrderItem messageOrderItem) {
-        return new OrderItem(
-                messageOrderItem.getQuantity(),
-                messageOrderItem.getName(),
-                MenuItemId.of(messageOrderItem.getMenuItemId())
-        );
-    }
-
     @Override
     public OrderCreatedEventMessage convert(OrderCreatedEvent event) {
         return orderCreatedEventMessageOf(event);
@@ -57,22 +42,8 @@ public class OrderCreatedEventDataConverter implements DataConverter<OrderCreate
                 .setOrderId(event.getConcernedAggregateId().getValue())
                 .setCustomerId(event.getCustomerId().getValue())
                 .setRestaurantId(event.getRestaurantId().getValue())
-                .addAllOrderItems(messageOrderItemsOf(event))
+                .addAllOrderItems(messageOrderItemsOf(event.getOrderItems()))
                 .setDateGenerated(Timestamp.newBuilder().setSeconds(event.getGeneratedOn().getEpochSecond()))
-                .build();
-    }
-
-    private Collection<OrderCreatedEventMessage.OrderItem> messageOrderItemsOf(OrderCreatedEvent event) {
-        return event.getOrderItems().stream()
-                .map(this::toMessageOrderItem)
-                .collect(Collectors.toUnmodifiableList());
-    }
-
-    private OrderCreatedEventMessage.OrderItem toMessageOrderItem(OrderItem orderItem) {
-        return OrderCreatedEventMessage.OrderItem.newBuilder()
-                .setQuantity(orderItem.getQuantity())
-                .setName(orderItem.getName())
-                .setMenuItemId(orderItem.getMenuItemId().getValue())
                 .build();
     }
 
@@ -82,7 +53,7 @@ public class OrderCreatedEventDataConverter implements DataConverter<OrderCreate
     }
 
     @Override
-    public boolean canConvert(Event<?> event) {
-        return OrderCreatedEvent.class == event.getClass();
+    public boolean canConvert(Object eventCandidate) {
+        return OrderCreatedEvent.class == eventCandidate.getClass();
     }
 }

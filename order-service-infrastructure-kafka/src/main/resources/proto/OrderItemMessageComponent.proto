@@ -1,0 +1,13 @@
+syntax="proto3";
+
+package restaurant.orderService;
+
+option java_package = "com.wnowakcraft.samples.restaurant.order.infrastructure.data.message";
+option java_outer_classname = "OrderItemMessageComponentProto";
+option java_multiple_files = true;
+
+message OrderItemMessageComponent {
+    int32 quantity = 1;
+    string name = 2;
+    string menu_item_id = 3;
+}

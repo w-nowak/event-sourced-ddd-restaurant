@@ -1,0 +1,21 @@
+syntax="proto3";
+
+package restaurant.orderService;
+
+option java_package = "com.wnowakcraft.samples.restaurant.order.infrastructure.data.message";
+option java_outer_classname = "OrderSnapshotMessageProto";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "OrderItemMessageComponent.proto";
+
+message OrderSnapshotMessage {
+    string snapshot_id = 1;
+    string order_id = 2;
+    string customer_id = 3;
+    string restaurant_id = 4;
+    repeated OrderItemMessageComponent order_items = 5;
+    string order_status = 6;
+    int64 order_version = 7;
+    google.protobuf.Timestamp date_generated = 8;
+}
