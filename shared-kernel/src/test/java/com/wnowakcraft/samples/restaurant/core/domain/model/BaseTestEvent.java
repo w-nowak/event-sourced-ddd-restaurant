@@ -16,16 +16,16 @@ public abstract class BaseTestEvent implements TestEvent {
 
     @Override
     public TestAggregateId getConcernedAggregateId() {
-        return null;
+        return aggregateId;
     }
 
     @Override
     public SequenceNumber getSequenceNumber() {
-        return null;
+        return sequenceNumber;
     }
 
     @Override
     public Instant getGeneratedOn() {
-        return null;
+        return generatedOn;
     }
 }

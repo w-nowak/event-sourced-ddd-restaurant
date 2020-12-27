@@ -4,11 +4,12 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 
+import static com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData.AGGREGATE_VERSION_1;
+
 @RequiredArgsConstructor
 public class TestSnapshot implements Snapshot<TestSnapshot.Id, TestAggregateId> {
     private static final Instant INSTANT_NOW = Instant.now();
-    private static final Aggregate.Version DEFAULT_AGGREGATE_VERSION = Aggregate.Version.of(1);
-    public static final TestSnapshot DEFAULT = new TestSnapshot(Id.DEFAULT, TestAggregateId.DEFAULT_ONE, INSTANT_NOW, DEFAULT_AGGREGATE_VERSION);
+    public static final TestSnapshot DEFAULT = new TestSnapshot(Id.DEFAULT, TestAggregateId.DEFAULT_ONE, INSTANT_NOW, AGGREGATE_VERSION_1);
 
     private final Id snapshotId;
     private final TestAggregateId aggregateId;

@@ -3,6 +3,7 @@ package com.wnowakcraft.samples.restaurant.core.domain.logic;
 import com.wnowakcraft.samples.restaurant.core.domain.logic.DefaultBusinessFlowProvisioner.BusinessFlowProvisionerConfig;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Command;
 import com.wnowakcraft.samples.restaurant.core.domain.model.CompensationSucceededResponse;
+import com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Response;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.BusinessFlowMock;
 import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowRunner.StateEnvelope;
@@ -17,9 +18,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.UUID;
 
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.failureWithCompensation;
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.failureWithRetry;
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.success;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.StateIndexAndCompensation.normalFlowAt;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock.allowedFlowFinishedResponses;
@@ -54,7 +53,7 @@ class DefaultBusinessFlowProvisionerITTest {
 
         var businessFlowDefinition =
                 BusinessFlowDefinition
-                        .startWith(TestInitEvent.class, e -> initFlowState)
+                        .startWith(ModelTestData.TestInitEvent.class, e -> initFlowState)
                             .compensateBy(s -> INIT_EVENT.COMPENSATION_COMMAND)
                         .thenSend(s -> FIRST_COMMAND.COMMAND)
                             .on(FirstCommandSuccessfulResponse.class, (resp, state) -> state.firstCommandHandled())
@@ -227,15 +226,15 @@ class DefaultBusinessFlowProvisionerITTest {
     private static class Fixture {
         private static final String COMMAND_RESPONSE_CHANNEL_NAME = "response_channel_name";
 
-        private final BusinessFlowDefinition<TestInitEvent, TestState> businessFlowDefinition;
+        private final BusinessFlowDefinition<ModelTestData.TestInitEvent, TestState> businessFlowDefinition;
 
         private BusinessFlowStateHandler<TestState> flowStateHandler;
-        private BusinessFlowProvisionerConfig<TestInitEvent> flowProvisionerConfig;
+        private BusinessFlowProvisionerConfig<ModelTestData.TestInitEvent> flowProvisionerConfig;
         private TestState actualFlowState;
-        private BusinessFlowProvisioner<TestInitEvent, TestState> businessFlowProvisioner;
-        private BusinessFlowMock<TestInitEvent, TestState> businessFlowMock;
+        private BusinessFlowProvisioner<ModelTestData.TestInitEvent, TestState> businessFlowProvisioner;
+        private BusinessFlowMock<ModelTestData.TestInitEvent, TestState> businessFlowMock;
 
-        Fixture(BusinessFlowDefinition<TestInitEvent, TestState> businessFlowDefinition, TestState flowInitialState) {
+        Fixture(BusinessFlowDefinition<ModelTestData.TestInitEvent, TestState> businessFlowDefinition, TestState flowInitialState) {
             this.businessFlowDefinition = businessFlowDefinition;
             this.actualFlowState = flowInitialState;
             MockitoAnnotations.initMocks(this);

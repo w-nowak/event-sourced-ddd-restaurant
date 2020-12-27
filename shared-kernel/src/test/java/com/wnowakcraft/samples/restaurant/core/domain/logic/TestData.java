@@ -12,7 +12,7 @@ public class TestData {
     static final Class<BaseTestEvent> EVENT_FAMILY = BaseTestEvent.class;
 
     static class INIT_EVENT {
-        static final TestInitEvent EVENT = new TestInitEvent();
+        static final ModelTestData.TestInitEvent EVENT = ModelTestData.AGGREGATE_INIT_EVENT;
         static final Command COMPENSATION_COMMAND = new InitEventCompensationCommand();
         static final Response COMPENSATION_SUCCEEDED_RESPONSE = new InitEventCompensationResponse(UUID.randomUUID());
     }
@@ -119,12 +119,6 @@ public class TestData {
         TestState compensationInitiatedOnSecondCommand() {
             this.compensationInitiatedOnSecondCommand = true;
             return this;
-        }
-    }
-
-    static class TestInitEvent extends BaseTestEvent {
-        TestInitEvent() {
-            super(BaseTestEvent.AGGREGATE_ID, BaseTestEvent.SEQUENCE_NUMBER, BaseTestEvent.GENERATED_ON);
         }
     }
 
