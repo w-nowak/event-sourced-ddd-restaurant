@@ -19,8 +19,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.UUID;
 
 import static com.wnowakcraft.samples.restaurant.core.domain.logic.BusinessFlowDefinition.OnResponse.*;
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.*;
-import static com.wnowakcraft.samples.restaurant.core.domain.logic.TestData.StateIndexAndCompensation.normalFlowAt;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.LogicTestData.*;
+import static com.wnowakcraft.samples.restaurant.core.domain.logic.LogicTestData.StateIndexAndCompensation.normalFlowAt;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.CommandResponseChannelMock.allowedFlowFinishedResponses;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.WhenOnCommand.ThenRespondWith.thenRespondInSequenceWith;
 import static com.wnowakcraft.samples.restaurant.core.infrastructure.messaging.mocking.WhenOnCommand.ThenRespondWith.thenRespondWith;

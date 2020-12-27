@@ -8,7 +8,7 @@ import java.util.UUID;
 import static lombok.AccessLevel.PRIVATE;
 import static lombok.AccessLevel.PROTECTED;
 
-public class TestData {
+public class LogicTestData {
     static final Class<ModelTestData.BaseEvent> EVENT_FAMILY = ModelTestData.BaseEvent.class;
 
     static class INIT_EVENT {
