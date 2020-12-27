@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -12,7 +13,7 @@ public interface EventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID e
     EventStream<E> loadAllEventsFor(ID aggregateId);
     EventStream<E> loadEventsFor(ID aggregateId, SequenceNumber startingFromSequenceNumber);
     EventStream<E> loadEventsFor(ID aggregateId, Aggregate.Version whichFollowsAggregateVersion);
-    void append(ID aggregateId, Aggregate.Version aggregateVersion, Collection<E> events);
+    CompletableFuture<Aggregate.Version> append(ID aggregateId, Aggregate.Version aggregateVersion, Collection<E> events);
 
     interface EventStream<E extends Event<?>> {
         EventStream<? extends Event<?>> EMPTY = new EmptyEventStream<>();

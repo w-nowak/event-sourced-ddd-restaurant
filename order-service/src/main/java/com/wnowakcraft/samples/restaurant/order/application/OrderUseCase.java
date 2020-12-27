@@ -1,5 +1,6 @@
 package com.wnowakcraft.samples.restaurant.order.application;
 
+import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.EventStore;
 import com.wnowakcraft.samples.restaurant.core.domain.model.EventStore.EventStream;
 import com.wnowakcraft.samples.restaurant.core.domain.model.SnapshotRepository;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
@@ -28,7 +30,9 @@ public class OrderUseCase {
                 orderItemsFrom(orderLines)
         );
 
-        eventStore.append(newOrder.getId(), newOrder.getVersion(), newOrder.getChanges());
+        eventStore.append(newOrder.getId(), newOrder.getVersion(), newOrder.getChanges())
+                .whenCompleteAsync(updateOrderVersion(newOrder));
+
 
         return newOrder.getId().getValue();
     }
@@ -43,12 +47,21 @@ public class OrderUseCase {
         final var anOrderId = Order.Id.of(orderId);
 
         var order = snapshotRepository.findLatestSnapshotFor(anOrderId)
-                .map(s -> restoreOrderFrom(s, eventStore.loadEventsFor(anOrderId, s.getAggregateVersion())))
+                .map(s -> restoreOrderFrom(s, eventStore.loadEventsFor(anOrderId, s.getAggregateVersion().nextVersion())))
                 .orElseGet(() -> restoreOrderFrom(eventStore.loadAllEventsFor(anOrderId)));
 
         order.approve();
 
-        eventStore.append(anOrderId, order.getVersion(), order.getChanges());
+        eventStore.append(anOrderId, order.getVersion(), order.getChanges())
+                .whenCompleteAsync(updateOrderVersion(order));
+    }
+
+    private BiConsumer<Aggregate.Version, Throwable> updateOrderVersion(Order order) {
+        return (newOrderVersion, exception) -> {
+            if (newOrderVersion != null) {
+                order.updateVersionTo(newOrderVersion);
+            }
+        };
     }
 
     private static Order restoreOrderFrom(OrderSnapshot snapshot, EventStream<OrderEvent> eventStream) {

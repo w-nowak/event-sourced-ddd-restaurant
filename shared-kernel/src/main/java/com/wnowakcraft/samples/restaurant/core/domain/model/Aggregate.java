@@ -41,6 +41,10 @@ public interface Aggregate<ID extends Aggregate.Id, E extends Event> {
 
             return new Version(number);
         }
+
+        public Version nextVersion() {
+            return new Version(number + 1);
+        }
     }
 
     interface State {

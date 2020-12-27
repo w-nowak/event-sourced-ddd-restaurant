@@ -147,7 +147,7 @@ public class KafkaSnapshotRepository<S extends Snapshot<? extends Snapshot.Id, A
                     shardRef.topicName, shardRef.shardId, snapshot.getSnapshotId().getValue(), snapshotMessageConverter.convert(snapshot)
             );
 
-            recordProducer.send(record, KafkaRecordAppendingHandler.handleAddRecordResultFor(record));
+            recordProducer.send(record, RecordAppendingLoggingHandler.getHandlerFor(record));
         }
     }
 }

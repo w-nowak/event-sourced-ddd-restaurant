@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -97,7 +98,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
     }
 
     @Override
-    public void append(ID businessId, Aggregate.Version aggregateVersion, Collection<E> events) {
+    public CompletableFuture<Aggregate.Version> append(ID businessId, Aggregate.Version aggregateVersion, Collection<E> events) {
         var shardRef = shardManager.getShardForBusinessIdOf(businessId);
         var shardCurrentOffsetFuture = shardMetadataProvider.getLastRecordOffsetForShard(shardRef);
         var outgoingRecords = createKafkaRecordsFor(events, shardRef, businessId);
@@ -109,7 +110,19 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
             throw new ConcurrentLogAppendingException(shardRef, currentOffset, expectedOffset);
         }
 
-        outgoingRecords.forEach(record -> producer.send(record, KafkaRecordAppendingHandler.handleAddRecordResultFor(record)));
+        return sendAsync(outgoingRecords);
+    }
+
+    private CompletableFuture<Aggregate.Version> sendAsync(List<ProducerRecord<String, Message>> outgoingRecords) {
+        return CompletableFuture.supplyAsync(() -> {
+            RecordAppendingOffsetTrackerHandler recordOffsetTrackerHandler = new RecordAppendingOffsetTrackerHandler();
+            outgoingRecords.forEach(record -> producer.send(
+                    record,
+                    recordOffsetTrackerHandler.getHandlerComposedWith(RecordAppendingLoggingHandler.getHandlerFor(record)))
+            );
+
+            return Aggregate.Version.of(recordOffsetTrackerHandler.getOffsetOfLatestAppendedRecord());
+        });
     }
 
     private List<ProducerRecord<String, Message>> createKafkaRecordsFor(Collection<E> events, ShardManager.ShardRef shardRef, ID businessId) {
