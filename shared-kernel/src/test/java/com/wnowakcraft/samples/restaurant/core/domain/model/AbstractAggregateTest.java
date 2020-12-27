@@ -93,6 +93,16 @@ class AbstractAggregateTest {
     }
 
     @Test
+    void updatesAggregateVersion() {
+        var aggregate = new TestAggregate(AGGREGATE_INIT_EVENT);
+        assertThat(aggregate.getVersion()).isEqualTo(Version.NONE);
+
+        aggregate.updateVersionTo(AGGREGATE_VERSION_2);
+
+        assertThat(aggregate.getVersion()).isEqualTo(AGGREGATE_VERSION_2);
+    }
+
+    @Test
     void verifiesNullPointerContractOfPublicConstructors() {
         new NullPointerTester()
                 .setDefault(Aggregate.Version.class, AGGREGATE_VERSION_1)

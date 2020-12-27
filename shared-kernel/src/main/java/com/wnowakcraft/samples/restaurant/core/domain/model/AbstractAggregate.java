@@ -6,9 +6,7 @@ import lombok.ToString;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import static com.wnowakcraft.preconditions.Preconditions.requireNonEmpty;
-import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
-import static com.wnowakcraft.preconditions.Preconditions.requireThat;
+import static com.wnowakcraft.preconditions.Preconditions.*;
 import static java.lang.String.format;
 import static java.util.List.copyOf;
 import static java.util.List.of;
@@ -16,10 +14,10 @@ import static java.util.List.of;
 @ToString
 @EqualsAndHashCode
 public abstract class AbstractAggregate<ID extends Aggregate.Id, E extends Event<ID>, S extends Snapshot<? extends Snapshot.Id, ID>>
-        implements Aggregate<ID, E> {
+        implements Aggregate<ID, E>, WithUpdatableVersion {
     private final ID aggregateId;
-    private final Version version;
     protected final Collection<E> changes;
+    private Version version;
 
     protected AbstractAggregate(E creatingEvent) {
         requireNonNull(creatingEvent, "creatingEvent");
@@ -76,5 +74,10 @@ public abstract class AbstractAggregate<ID extends Aggregate.Id, E extends Event
     @Override
     public Version getVersion() {
         return version;
+    }
+
+    @Override
+    public void updateVersionTo(Version version) {
+        this.version = version;
     }
 }
