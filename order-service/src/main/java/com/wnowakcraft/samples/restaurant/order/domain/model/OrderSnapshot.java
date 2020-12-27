@@ -22,10 +22,10 @@ public final class OrderSnapshot extends AbstractSnapshot<OrderSnapshot.Id, Orde
     private final Order.Status orderStatus;
     private final Collection<OrderItem> orderItems;
 
-    static OrderSnapshot newSnapshot(Order.Id orderId, CustomerId customerId, RestaurantId restaurantId,
+    static OrderSnapshot newSnapshot(Order.Id orderId, Version version, CustomerId customerId, RestaurantId restaurantId,
                                      Order.Status orderStatus, Collection<OrderItem> orderItems) {
         return new OrderSnapshot(
-                OrderSnapshot.Id.newId(), orderId, instantNow(), Version.NONE,
+                OrderSnapshot.Id.newId(), orderId, instantNow(), version,
                 customerId, restaurantId, orderStatus, orderItems
         );
     }

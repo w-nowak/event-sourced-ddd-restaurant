@@ -1,7 +1,6 @@
 package com.wnowakcraft.samples.restaurant.order.domain.model;
 
 import com.google.common.testing.NullPointerTester;
-import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.core.domain.model.DomainBoundBusinessId;
 import com.wnowakcraft.samples.restaurant.core.utils.ApplicationClock;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,7 +29,9 @@ class OrderSnapshotTest {
 
     @Test
     void createsNewOrderSnapshot() {
-        var orderSnapshot = OrderSnapshot.newSnapshot(OrderModelTestData.ORDER_ID, OrderModelTestData.CUSTOMER_ID, OrderModelTestData.RESTAURANT_ID, Order.Status.APPROVED, OrderModelTestData.THREE_ORDER_ITEMS);
+        var orderSnapshot = OrderSnapshot.newSnapshot(
+                OrderModelTestData.ORDER_ID, OrderModelTestData.ORDER_VERSION, OrderModelTestData.CUSTOMER_ID,
+                OrderModelTestData.RESTAURANT_ID, Order.Status.APPROVED, OrderModelTestData.THREE_ORDER_ITEMS);
 
         assertThat(orderSnapshot.getAggregateId()).isEqualTo(OrderModelTestData.ORDER_ID);
         assertThat(orderSnapshot.getCustomerId()).isEqualTo(OrderModelTestData.CUSTOMER_ID);
@@ -38,7 +39,7 @@ class OrderSnapshotTest {
         assertThat(orderSnapshot.getOrderStatus()).isEqualTo(Order.Status.APPROVED);
         assertThat(orderSnapshot.getOrderItems()).isEqualTo(OrderModelTestData.THREE_ORDER_ITEMS);
         assertThat(orderSnapshot.getCreationDate()).isEqualTo(CURRENT_INSTANT);
-        assertThat(orderSnapshot.getAggregateVersion()).isEqualTo(Version.NONE);
+        assertThat(orderSnapshot.getAggregateVersion()).isEqualTo(OrderModelTestData.ORDER_VERSION);
         assertThat(orderSnapshot.getSnapshotId()).isNotNull();
         assertThat(orderSnapshot.getSnapshotId().getValue()).startsWith("ORDER-ORDER-S-");
         assertThat(orderSnapshot.getSnapshotId().getValue()).matches(DomainBoundBusinessId.STRING_ID_REGEX);

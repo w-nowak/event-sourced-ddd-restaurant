@@ -4,7 +4,6 @@ import com.google.common.testing.NullPointerTester;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.core.utils.ApplicationClock;
-import com.wnowakcraft.samples.restaurant.order.domain.model.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -406,12 +405,11 @@ class OrderTest {
 
     @Test
     void takeSnapshotOfOrderRetunsSnapshotWithCorrectState() {
-        var orderVersion = Version.of(10);
         var events = List.<OrderEvent>of(
                 new OrderCreatedEvent(ORDER_ID, CUSTOMER_ID, RESTAURANT_ID, THREE_ORDER_ITEMS),
                 new OrderApprovedEvent(ORDER_ID)
         );
-        var approvedOrder = Order.restoreFrom(events, orderVersion);
+        var approvedOrder = Order.restoreFrom(events, AGGREGATE_VERSION);
 
         var approvedOrderSnapshot = approvedOrder.takeSnapshot();
 
@@ -423,7 +421,7 @@ class OrderTest {
         assertThat(approvedOrderSnapshot.getCreationDate()).isEqualTo(CURRENT_INSTANT);
         assertThat(approvedOrderSnapshot.getOrderItems()).isEqualTo(THREE_ORDER_ITEMS);
         assertThat(approvedOrderSnapshot.getOrderStatus()).isEqualTo(Order.Status.APPROVED);
-        assertThat(approvedOrderSnapshot.getAggregateVersion()).isEqualTo(Version.NONE);
+        assertThat(approvedOrderSnapshot.getAggregateVersion()).isEqualTo(AGGREGATE_VERSION);
     }
 
     @Test

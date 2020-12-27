@@ -122,7 +122,7 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
     }
 
     public OrderSnapshot takeSnapshot() {
-        return OrderSnapshot.newSnapshot(getId(), customerId, restaurantId, status, orderItems);
+        return OrderSnapshot.newSnapshot(getId(), getVersion(), customerId, restaurantId, status, orderItems);
     }
 
     void apply(OrderCreatedEvent orderCreatedEvent) {
