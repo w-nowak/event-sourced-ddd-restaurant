@@ -3,8 +3,7 @@ package com.wnowakcraft.samples.restaurant.order.infrastructure.data.store;
 import com.google.protobuf.Message;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Event;
-import com.wnowakcraft.samples.restaurant.core.domain.model.TestAggregateId;
-import com.wnowakcraft.samples.restaurant.core.domain.model.TestSnapshot;
+import com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.conversion.MessageConverter;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.KafkaPartition;
 import com.wnowakcraft.samples.restaurant.order.infrastructure.data.shard.ShardManager;
@@ -128,23 +127,23 @@ class KafkaSnapshotRepositoryTest {
     }
 
     private static class Fixture {
-        private static final TestAggregateId AGGREGATE_ID = TestAggregateId.DEFAULT_ONE;
+        private static final ModelTestData.AggregateId AGGREGATE_ID = ModelTestData.AggregateId.DEFAULT_ONE;
         private static final int SHARD_NUMBER = 0;
         private static final ShardRef SHARD_REF = new ShardRef("test_topic", SHARD_NUMBER);
         public static final TopicPartition PARTITION_ASSIGNMENT = KafkaPartition.of(SHARD_REF);
         private static final int ONE_RECORD = 1;
-        private static List<TestSnapshot> snapshotsInTopic;
+        private static List<ModelTestData.Snapshot> snapshotsInTopic;
 
         @Mock private ShardManager shardManager;
         @Mock private ShardMetadataProvider shardMetadataProvider;
         @Mock private Consumer<String, Message> recordConsumer;
         @Mock private KafkaProducerFactory producerFactory;
         @Mock private KafkaConsumerFactory consumerFactory;
-        @Mock private KafkaRecordReader<TestSnapshot> recordReader;
+        @Mock private KafkaRecordReader<ModelTestData.Snapshot> recordReader;
         @Mock private RecordSearchStrategyFactory recordSearchStrategyFactory;
-        @Mock private MessageConverter<TestSnapshot, Message> snapshotMessageConverter;
-        private KafkaSnapshotRepository<TestSnapshot, TestAggregateId> snapshotRepository;
-        private TestSnapshot foundSnapshot;
+        @Mock private MessageConverter<ModelTestData.Snapshot, Message> snapshotMessageConverter;
+        private KafkaSnapshotRepository<ModelTestData.Snapshot, ModelTestData.AggregateId> snapshotRepository;
+        private ModelTestData.Snapshot foundSnapshot;
 
         Fixture() {
             snapshotsInTopic = new ArrayList<>();
@@ -158,7 +157,7 @@ class KafkaSnapshotRepositoryTest {
         }
 
         void givenSnapshotsInTopicWithFollowingVersions(List<Integer> snapshotVersions) {
-            snapshotVersions.forEach(snapshotVersion -> snapshotsInTopic.add(TestSnapshot.ofVersion(Aggregate.Version.of(snapshotVersion))));
+            snapshotVersions.forEach(snapshotVersion -> snapshotsInTopic.add(ModelTestData.Snapshot.ofVersion(Aggregate.Version.of(snapshotVersion))));
 
             if (!snapshotVersions.isEmpty()) {
                 givenLastSnapshotRecordOffsetIs(Math.max(snapshotVersions.size() - 1, 0));

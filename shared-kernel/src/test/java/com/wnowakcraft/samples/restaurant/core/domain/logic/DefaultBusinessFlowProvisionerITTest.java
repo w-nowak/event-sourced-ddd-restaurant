@@ -53,7 +53,7 @@ class DefaultBusinessFlowProvisionerITTest {
 
         var businessFlowDefinition =
                 BusinessFlowDefinition
-                        .startWith(ModelTestData.TestInitEvent.class, e -> initFlowState)
+                        .startWith(ModelTestData.InitEvent.class, e -> initFlowState)
                             .compensateBy(s -> INIT_EVENT.COMPENSATION_COMMAND)
                         .thenSend(s -> FIRST_COMMAND.COMMAND)
                             .on(FirstCommandSuccessfulResponse.class, (resp, state) -> state.firstCommandHandled())
@@ -226,15 +226,15 @@ class DefaultBusinessFlowProvisionerITTest {
     private static class Fixture {
         private static final String COMMAND_RESPONSE_CHANNEL_NAME = "response_channel_name";
 
-        private final BusinessFlowDefinition<ModelTestData.TestInitEvent, TestState> businessFlowDefinition;
+        private final BusinessFlowDefinition<ModelTestData.InitEvent, TestState> businessFlowDefinition;
 
         private BusinessFlowStateHandler<TestState> flowStateHandler;
-        private BusinessFlowProvisionerConfig<ModelTestData.TestInitEvent> flowProvisionerConfig;
+        private BusinessFlowProvisionerConfig<ModelTestData.InitEvent> flowProvisionerConfig;
         private TestState actualFlowState;
-        private BusinessFlowProvisioner<ModelTestData.TestInitEvent, TestState> businessFlowProvisioner;
-        private BusinessFlowMock<ModelTestData.TestInitEvent, TestState> businessFlowMock;
+        private BusinessFlowProvisioner<ModelTestData.InitEvent, TestState> businessFlowProvisioner;
+        private BusinessFlowMock<ModelTestData.InitEvent, TestState> businessFlowMock;
 
-        Fixture(BusinessFlowDefinition<ModelTestData.TestInitEvent, TestState> businessFlowDefinition, TestState flowInitialState) {
+        Fixture(BusinessFlowDefinition<ModelTestData.InitEvent, TestState> businessFlowDefinition, TestState flowInitialState) {
             this.businessFlowDefinition = businessFlowDefinition;
             this.actualFlowState = flowInitialState;
             MockitoAnnotations.initMocks(this);

@@ -64,30 +64,30 @@ class AbstractAggregateTest {
 
     @Test
     void recreatesAggregateFromSnapshotAndEvents() {
-        TestAggregate aggregate = new TestAggregate(TestSnapshot.DEFAULT, List.of(AGGREGATE_SAMPLE_EVENT), AGGREGATE_VERSION_2);
+        TestAggregate aggregate = new TestAggregate(ModelTestData.Snapshot.DEFAULT, List.of(AGGREGATE_SAMPLE_EVENT), AGGREGATE_VERSION_2);
 
         assertThat(aggregate.getId()).isEqualTo(AGGREGATE_INIT_EVENT.getConcernedAggregateId());
         assertThat(aggregate.getVersion()).isEqualTo(AGGREGATE_VERSION_2);
         assertThat(aggregate.getChanges()).isEmpty();
-        assertThat(aggregate.getSnapshotUsedToRestoreAggregate()).isEqualTo(TestSnapshot.DEFAULT);
+        assertThat(aggregate.getSnapshotUsedToRestoreAggregate()).isEqualTo(ModelTestData.Snapshot.DEFAULT);
         assertThat(aggregate.getEventsAppliedToAggregate()).containsExactly(AGGREGATE_SAMPLE_EVENT);
     }
 
     @Test
     void recreatesAggregateFromSnapshotAndEmptyCollectionOfEvents() {
-        TestAggregate aggregate = new TestAggregate(TestSnapshot.DEFAULT, Collections.emptyList(), AGGREGATE_VERSION_2);
+        TestAggregate aggregate = new TestAggregate(ModelTestData.Snapshot.DEFAULT, Collections.emptyList(), AGGREGATE_VERSION_2);
 
         assertThat(aggregate.getId()).isEqualTo(AGGREGATE_INIT_EVENT.getConcernedAggregateId());
         assertThat(aggregate.getVersion()).isEqualTo(AGGREGATE_VERSION_2);
         assertThat(aggregate.getChanges()).isEmpty();
-        assertThat(aggregate.getSnapshotUsedToRestoreAggregate()).isEqualTo(TestSnapshot.DEFAULT);
+        assertThat(aggregate.getSnapshotUsedToRestoreAggregate()).isEqualTo(ModelTestData.Snapshot.DEFAULT);
         assertThat(aggregate.getEventsAppliedToAggregate()).isEmpty();
     }
 
     @Test
     void recreatingAggregateFromSnapshotAndEvents_throwsIllegalArgumentException_whenAggregateVersionIsNone() {
         var caughtException = catchThrowable(
-                () -> new TestAggregate(TestSnapshot.DEFAULT, List.of(AGGREGATE_SAMPLE_EVENT), Version.NONE));
+                () -> new TestAggregate(ModelTestData.Snapshot.DEFAULT, List.of(AGGREGATE_SAMPLE_EVENT), Version.NONE));
 
         assertThat(caughtException).isInstanceOf(IllegalArgumentException.class);
     }
@@ -110,39 +110,39 @@ class AbstractAggregateTest {
                 .testAllPublicConstructors(TestAggregate.class);
     }
 
-    static class TestAggregate extends AbstractAggregate<TestAggregateId, TestEvent, TestSnapshot> {
-        private TestSnapshot snapshotUsedToRestoreAggregate;
-        private Collection<? extends TestEvent> eventsAppliedToAggregate;
+    static class TestAggregate extends AbstractAggregate<AggregateId, ModelTestData.Event, ModelTestData.Snapshot> {
+        private ModelTestData.Snapshot snapshotUsedToRestoreAggregate;
+        private Collection<? extends ModelTestData.Event> eventsAppliedToAggregate;
 
-        public TestAggregate(TestEvent creatingEvent) {
+        public TestAggregate(ModelTestData.Event creatingEvent) {
             super(creatingEvent);
         }
 
-        public TestAggregate(Collection<? extends TestEvent> events, Class<? extends TestEvent> creatingEventClass, Version version) {
+        public TestAggregate(Collection<? extends ModelTestData.Event> events, Class<? extends ModelTestData.Event> creatingEventClass, Version version) {
             super(events, creatingEventClass, version);
         }
 
-        public TestAggregate(TestSnapshot snapshot, Collection<? extends TestEvent> events, Version version) {
+        public TestAggregate(ModelTestData.Snapshot snapshot, Collection<? extends ModelTestData.Event> events, Version version) {
             super(snapshot, events, version);
         }
 
         @Override
-        protected void applyAll(Collection<TestEvent> events) {
+        protected void applyAll(Collection<ModelTestData.Event> events) {
             eventsAppliedToAggregate = events;
         }
 
         @Override
-        protected void restoreFrom(TestSnapshot snapshot) {
+        protected void restoreFrom(ModelTestData.Snapshot snapshot) {
             snapshotUsedToRestoreAggregate = snapshot;
         }
 
-        public TestSnapshot getSnapshotUsedToRestoreAggregate() {
+        public ModelTestData.Snapshot getSnapshotUsedToRestoreAggregate() {
             return snapshotUsedToRestoreAggregate;
         }
 
         @SuppressWarnings("unchecked")
-        public Collection<TestEvent> getEventsAppliedToAggregate() {
-            return (Collection<TestEvent>) eventsAppliedToAggregate;
+        public Collection<ModelTestData.Event> getEventsAppliedToAggregate() {
+            return (Collection<ModelTestData.Event>) eventsAppliedToAggregate;
         }
     }
 }

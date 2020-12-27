@@ -9,10 +9,10 @@ import static lombok.AccessLevel.PRIVATE;
 import static lombok.AccessLevel.PROTECTED;
 
 public class TestData {
-    static final Class<BaseTestEvent> EVENT_FAMILY = BaseTestEvent.class;
+    static final Class<ModelTestData.BaseEvent> EVENT_FAMILY = ModelTestData.BaseEvent.class;
 
     static class INIT_EVENT {
-        static final ModelTestData.TestInitEvent EVENT = ModelTestData.AGGREGATE_INIT_EVENT;
+        static final ModelTestData.InitEvent EVENT = ModelTestData.AGGREGATE_INIT_EVENT;
         static final Command COMPENSATION_COMMAND = new InitEventCompensationCommand();
         static final Response COMPENSATION_SUCCEEDED_RESPONSE = new InitEventCompensationResponse(UUID.randomUUID());
     }

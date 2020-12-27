@@ -1,20 +1,116 @@
 package com.wnowakcraft.samples.restaurant.core.domain.model;
 
+import lombok.RequiredArgsConstructor;
+
+import java.time.Instant;
+
 public class ModelTestData {
-    public static final TestInitEvent AGGREGATE_INIT_EVENT = new TestInitEvent();
-    public static final TestSampleEvent AGGREGATE_SAMPLE_EVENT = new TestSampleEvent();
+    public static final InitEvent AGGREGATE_INIT_EVENT = new InitEvent();
+    public static final SampleEvent AGGREGATE_SAMPLE_EVENT = new SampleEvent();
+
     public static final Aggregate.Version AGGREGATE_VERSION_1 = Aggregate.Version.of(1);
     public static final Aggregate.Version AGGREGATE_VERSION_2 = Aggregate.Version.of(2);
 
-    public static class TestInitEvent extends BaseTestEvent {
-        TestInitEvent() {
-            super(BaseTestEvent.AGGREGATE_ID, BaseTestEvent.SEQUENCE_NUMBER, BaseTestEvent.GENERATED_ON);
+    public static class AggregateId extends Aggregate.Id {
+        public static final String DOMAIN_NAME = "shared-kernel";
+        public static final String AGGREGATE_NAME = "testAggregate";
+        public static final AggregateId DEFAULT_ONE = new AggregateId(DOMAIN_NAME, AGGREGATE_NAME);
+
+        private AggregateId(String domainName, String domainObjectName) {
+            super(domainName, domainObjectName);
         }
     }
 
-    public static class TestSampleEvent extends BaseTestEvent {
-        TestSampleEvent() {
-            super(BaseTestEvent.AGGREGATE_ID, BaseTestEvent.SEQUENCE_NUMBER.next(), BaseTestEvent.GENERATED_ON.plusSeconds(60*60));
+    public interface Event extends com.wnowakcraft.samples.restaurant.core.domain.model.Event<AggregateId> { }
+
+    @RequiredArgsConstructor
+    public abstract static class BaseEvent implements Event {
+        public static final SequenceNumber SEQUENCE_NUMBER = SequenceNumber.of(5);
+        public static final Instant GENERATED_ON = Instant.now();
+
+        private final AggregateId aggregateId;
+        private final SequenceNumber sequenceNumber;
+        private final Instant generatedOn;
+
+        @Override
+        public AggregateId getConcernedAggregateId() {
+            return aggregateId;
+        }
+
+        @Override
+        public SequenceNumber getSequenceNumber() {
+            return sequenceNumber;
+        }
+
+        @Override
+        public Instant getGeneratedOn() {
+            return generatedOn;
+        }
+    }
+
+    public static class InitEvent extends BaseEvent {
+        InitEvent() {
+            super(AggregateId.DEFAULT_ONE, BaseEvent.SEQUENCE_NUMBER, BaseEvent.GENERATED_ON);
+        }
+    }
+
+    public static class SampleEvent extends BaseEvent {
+        SampleEvent() {
+            super(AggregateId.DEFAULT_ONE, BaseEvent.SEQUENCE_NUMBER.next(), BaseEvent.GENERATED_ON.plusSeconds(60*60));
+        }
+    }
+
+    @RequiredArgsConstructor
+    public static class Snapshot implements com.wnowakcraft.samples.restaurant.core.domain.model.Snapshot<Snapshot.Id, AggregateId> {
+        private static final Instant INSTANT_NOW = Instant.now();
+        public static final Snapshot DEFAULT = new Snapshot(Snapshot.Id.DEFAULT, AggregateId.DEFAULT_ONE, INSTANT_NOW, AGGREGATE_VERSION_1);
+
+        private final Id snapshotId;
+        private final AggregateId aggregateId;
+        private final Instant creationDate;
+        private final Aggregate.Version aggregateVersion;
+
+        public static Snapshot ofVersion(Aggregate.Version version) {
+            return new Snapshot(Snapshot.Id.any(), AggregateId.DEFAULT_ONE, INSTANT_NOW, version);
+        }
+
+        @Override
+        public Id getSnapshotId() {
+            return snapshotId;
+        }
+
+        @Override
+        public AggregateId getAggregateId() {
+            return aggregateId;
+        }
+
+        @Override
+        public Instant getCreationDate() {
+            return creationDate;
+        }
+
+        @Override
+        public Aggregate.Version getAggregateVersion() {
+            return aggregateVersion;
+        }
+
+        public static class Id extends com.wnowakcraft.samples.restaurant.core.domain.model.Snapshot.Id {
+            private static final String TEST_DOMAIN_NAME = "TEST";
+            private static final String TEST_DOMAIN_OBJECT_NAME = "TEST";
+            public static final String TEST_SNAPSHOT_ID = TEST_DOMAIN_NAME + "-" + TEST_DOMAIN_OBJECT_NAME + "-S-75a03383-694a-4b78";
+            public static final Id DEFAULT = new Id(TEST_SNAPSHOT_ID, TEST_DOMAIN_NAME, TEST_DOMAIN_OBJECT_NAME);
+
+            public static Id any() {
+                return new Id(TEST_DOMAIN_NAME, TEST_DOMAIN_OBJECT_NAME);
+            }
+
+            private Id(String domainName, String domainObjectName) {
+                super(domainName, domainObjectName);
+            }
+
+            private Id(String snapshotId, String domainName, String domainObjectName) {
+                super(snapshotId, domainName, domainObjectName);
+            }
         }
     }
 }
