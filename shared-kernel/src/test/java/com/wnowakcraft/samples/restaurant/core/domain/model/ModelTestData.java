@@ -3,15 +3,16 @@ package com.wnowakcraft.samples.restaurant.core.domain.model;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
+import java.util.Collection;
 
 public class ModelTestData {
     public static final InitEvent AGGREGATE_INIT_EVENT = new InitEvent();
     public static final SampleEvent AGGREGATE_SAMPLE_EVENT = new SampleEvent();
 
-    public static final Aggregate.Version AGGREGATE_VERSION_1 = Aggregate.Version.of(1);
-    public static final Aggregate.Version AGGREGATE_VERSION_2 = Aggregate.Version.of(2);
+    public static final com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version AGGREGATE_VERSION_1 = com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version.of(1);
+    public static final com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version AGGREGATE_VERSION_2 = com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version.of(2);
 
-    public static class AggregateId extends Aggregate.Id {
+    public static class AggregateId extends com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Id {
         public static final String DOMAIN_NAME = "shared-kernel";
         public static final String AGGREGATE_NAME = "testAggregate";
         public static final AggregateId DEFAULT_ONE = new AggregateId(DOMAIN_NAME, AGGREGATE_NAME);
@@ -68,9 +69,9 @@ public class ModelTestData {
         private final Id snapshotId;
         private final AggregateId aggregateId;
         private final Instant creationDate;
-        private final Aggregate.Version aggregateVersion;
+        private final com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version aggregateVersion;
 
-        public static Snapshot ofVersion(Aggregate.Version version) {
+        public static Snapshot ofVersion(com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version version) {
             return new Snapshot(Snapshot.Id.any(), AggregateId.DEFAULT_ONE, INSTANT_NOW, version);
         }
 
@@ -90,7 +91,7 @@ public class ModelTestData {
         }
 
         @Override
-        public Aggregate.Version getAggregateVersion() {
+        public com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version getAggregateVersion() {
             return aggregateVersion;
         }
 
@@ -111,6 +112,42 @@ public class ModelTestData {
             private Id(String snapshotId, String domainName, String domainObjectName) {
                 super(snapshotId, domainName, domainObjectName);
             }
+        }
+    }
+
+    public static class Aggregate extends AbstractAggregate<AggregateId, Event, Snapshot> {
+        private Snapshot snapshotUsedToRestoreAggregate;
+        private Collection<? extends Event> eventsAppliedToAggregate;
+
+        public Aggregate(Event creatingEvent) {
+            super(creatingEvent);
+        }
+
+        public Aggregate(Collection<? extends Event> events, Class<? extends Event> creatingEventClass, Version version) {
+            super(events, creatingEventClass, version);
+        }
+
+        public Aggregate(Snapshot snapshot, Collection<? extends Event> events, Version version) {
+            super(snapshot, events, version);
+        }
+
+        @Override
+        protected void applyAll(Collection<Event> events) {
+            eventsAppliedToAggregate = events;
+        }
+
+        @Override
+        protected void restoreFrom(Snapshot snapshot) {
+            snapshotUsedToRestoreAggregate = snapshot;
+        }
+
+        public Snapshot getSnapshotUsedToRestoreAggregate() {
+            return snapshotUsedToRestoreAggregate;
+        }
+
+        @SuppressWarnings("unchecked")
+        public Collection<Event> getEventsAppliedToAggregate() {
+            return (Collection<Event>) eventsAppliedToAggregate;
         }
     }
 }
