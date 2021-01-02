@@ -28,6 +28,7 @@ import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.Iterables.getLast;
 import static java.util.List.copyOf;
+import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -133,7 +134,7 @@ public class KafkaEventStore<E extends Event<?>, A extends Aggregate<ID, E>, ID 
     }
 
     @Getter
-    @RequiredArgsConstructor
+    @RequiredArgsConstructor(access = PRIVATE)
     private static class KafkaEventStream<E extends Event<?>> implements EventStream<E> {
         private final Collection<E> events;
         private final Aggregate.Version version;
