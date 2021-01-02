@@ -11,10 +11,8 @@ import com.wnowakcraft.samples.restaurant.core.infrastructure.saga.BusinessFlowS
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.UUID;
 
@@ -28,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
 class DefaultBusinessFlowProvisionerITTest {
     private static final int FLOW_FULLY_COMPENSATED_STATE_INDEX =  -1;
     private static final int INIT_EVENT_STATE_INDEX =  0;
@@ -77,7 +74,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void successfulFlowPass_forNewBusinessFlow_whenAllSuccessfulResponsesReturned() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
@@ -97,7 +94,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void successfulFlowPass_forLoadedInProgressBusinessFlowResumedAfterInitEventHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
@@ -117,7 +114,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void successfulFlowPass_forLoadedInProgressBusinessFlowAfterFistCommandHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
@@ -140,7 +137,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void successfulFlowPass_forLoadedInProgressBusinessFlowResumedAfterRequestedDataIsHandled_whenAllSuccessfulResponsesReturnedForRemainingSteps() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
@@ -162,7 +159,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void compensatedFlow_whenErrorOccursAtSomePointOfResumedBusinessFlow_onStepWithCompensation_allPreviousCompensableStatesAreCompensated() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
@@ -185,7 +182,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void compensatedFlow_whenErrorOccursAtSomePointOfNewBusinessFlow_onStepWithNoCompensation_allPreviousCompensableStatesAreCompensated() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
@@ -204,7 +201,7 @@ class DefaultBusinessFlowProvisionerITTest {
     }
 
     @Test
-    @Timeout(3)
+    @Timeout(5)
     void successfulFlowPass_withRetriesOnRetryableStep_whenRetryUltimatelySucceeds_andAllSuccessfulResponsesReturned() {
         fixture.givenFlowIsInitialized();
         fixture.givenFlowIsProvisioned();
