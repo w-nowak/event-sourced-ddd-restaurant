@@ -7,6 +7,8 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
+import static java.util.Objects.requireNonNull;
+
 @RequiredArgsConstructor(onConstructor_ = { @Inject })
 public class AggregateRepository<
         E extends Event<?>,
@@ -20,10 +22,14 @@ public class AggregateRepository<
     @NonNull private final RestoreAggregateFromEvents<E, A, ID> restoreAggregateFromEvents;
 
     public CompletableFuture<Aggregate.Version> save(A aggregate) {
+        requireNonNull(aggregate, "aggregate");
+
         return eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges());
     }
 
     public A getById(ID aggregateId) {
+        requireNonNull(aggregateId, "aggregateId");
+
         return snapshotRepository.findLatestSnapshotFor(aggregateId)
                 .map(s -> restoreOrderFrom(s, eventStore.loadEventsFor(aggregateId, s.getAggregateVersion().nextVersion())))
                 .orElseGet(() -> restoreOrderFrom(eventStore.loadAllEventsFor(aggregateId)));

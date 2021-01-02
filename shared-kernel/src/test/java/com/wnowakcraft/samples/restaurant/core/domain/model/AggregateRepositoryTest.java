@@ -1,5 +1,6 @@
 package com.wnowakcraft.samples.restaurant.core.domain.model;
 
+import com.google.common.testing.NullPointerTester;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.core.domain.model.AggregateRepository.RestoreAggregateFromEvents;
 import com.wnowakcraft.samples.restaurant.core.domain.model.AggregateRepository.RestoreAggregateFromSnapshot;
@@ -86,6 +87,16 @@ class AggregateRepositoryTest {
 
         fixture.thenTheExpectedAggregateShouldBeReturned();
         fixture.andVerifyNoInteractionWithRestoreAggregateFromEvents();
+    }
+
+    @Test
+    void verifiesNullPointerContractOfPublicInstanceMethods() {
+        fixture.verifiesNullPointerContractOfPublicInstanceMethods();
+    }
+
+    @Test
+    void verifiesNullPointerContractOfPublicConstructor() {
+        fixture.verifiesNullPointerContractOfPublicConstructor();
     }
 
     private static class Fixture {
@@ -195,5 +206,12 @@ class AggregateRepositoryTest {
             interactions.add(interaction);
         }
 
+        public void verifiesNullPointerContractOfPublicInstanceMethods() {
+            new NullPointerTester().testAllPublicInstanceMethods(aggregateRepository);
+        }
+
+        public void verifiesNullPointerContractOfPublicConstructor() {
+            new NullPointerTester().testAllPublicConstructors(AggregateRepository.class);
+        }
     }
 }
