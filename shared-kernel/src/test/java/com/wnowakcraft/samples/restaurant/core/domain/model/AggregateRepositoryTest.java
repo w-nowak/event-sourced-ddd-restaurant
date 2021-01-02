@@ -49,7 +49,7 @@ class AggregateRepositoryTest {
 
     @Test
     void getById_returnsAggregateRecreatedFromEvents_whenNoSnapshotIsAvailable() {
-        var restoreEvents = List.<Event>of(AGGREGATE_INIT_EVENT, AGGREGATE_SAMPLE_EVENT);
+        var restoreEvents = List.<Event>of(Aggregate.INIT_EVENT, Aggregate.SAMPLE_EVENT);
         fixture.givenAn(AGGREGATE);
         fixture.givenNoSnapshotIsAvailableForGivenAggregate();
         fixture.givenEventStoreReturnsEventStreamWithAll(restoreEvents);
@@ -63,7 +63,7 @@ class AggregateRepositoryTest {
 
     @Test
     void getById_returnsAggregateRecreatedFromSnapshotAndEvents_whenSnapshotIsAvailable() {
-        var restoreEvents = List.<Event>of(AGGREGATE_SAMPLE_EVENT);
+        var restoreEvents = List.<Event>of(Aggregate.SAMPLE_EVENT);
         fixture.givenAn(AGGREGATE);
         fixture.givenSnapshotIsAvailableForGivenAggregate();
         fixture.givenEventStoreForGivenAggregateVersionReturnsEventStreamWith(restoreEvents);
@@ -126,7 +126,7 @@ class AggregateRepositoryTest {
 
         public void givenAggregateChangesAreAppendedToEventStore() {
             given(eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges()))
-                    .willReturn(CompletableFuture.completedFuture(AGGREGATE_VERSION_2));
+                    .willReturn(CompletableFuture.completedFuture(Aggregate.VERSION_2));
             interactions.add(() -> then(eventStore).should().append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges()));
         }
 
@@ -135,7 +135,7 @@ class AggregateRepositoryTest {
         }
 
         public void thenReturnedVersionIsNextAggregateVersion() {
-            assertThat(aggregateVersion).isEqualTo(AGGREGATE_VERSION_2);
+            assertThat(aggregateVersion).isEqualTo(Aggregate.VERSION_2);
         }
 
         public void givenSnapshotIsAvailableForGivenAggregate() {
@@ -150,24 +150,24 @@ class AggregateRepositoryTest {
 
         public void givenEventStoreReturnsEventStreamWithAll(List<Event> events) {
             this.events = events;
-            given(eventStore.loadAllEventsFor(aggregate.getId())).willReturn(new EventStream(events, AGGREGATE_VERSION_2));
+            given(eventStore.loadAllEventsFor(aggregate.getId())).willReturn(new EventStream(events, Aggregate.VERSION_2));
             addInteraction(eventStore, () -> then(eventStore).should().loadAllEventsFor(aggregate.getId()));
         }
 
         public void givenEventStoreForGivenAggregateVersionReturnsEventStreamWith(List<Event> events) {
             this.events = events;
-            given(eventStore.loadEventsFor(aggregate.getId(), AGGREGATE_VERSION_2)).willReturn(new EventStream(events, AGGREGATE_VERSION_2));
-            addInteraction(eventStore, () -> then(eventStore).should().loadEventsFor(aggregate.getId(), AGGREGATE_VERSION_2));
+            given(eventStore.loadEventsFor(aggregate.getId(), Aggregate.VERSION_2)).willReturn(new EventStream(events, Aggregate.VERSION_2));
+            addInteraction(eventStore, () -> then(eventStore).should().loadEventsFor(aggregate.getId(), Aggregate.VERSION_2));
         }
 
         public void givenAggregateIsRestoredWithJustEvents() {
-            given(restoreAggregateFromEvents.restore(events, AGGREGATE_VERSION_2)).willReturn(aggregate);
-            addInteraction(restoreAggregateFromEvents, () -> then(restoreAggregateFromEvents).should().restore(events, AGGREGATE_VERSION_2));
+            given(restoreAggregateFromEvents.restore(events, Aggregate.VERSION_2)).willReturn(aggregate);
+            addInteraction(restoreAggregateFromEvents, () -> then(restoreAggregateFromEvents).should().restore(events, Aggregate.VERSION_2));
         }
 
         public void givenAggregateIsRestoredWithSnapshotAndEvents() {
-            given(restoreAggregateFromSnapshot.restore(Snapshot.DEFAULT, events, AGGREGATE_VERSION_2)).willReturn(aggregate);
-            addInteraction(restoreAggregateFromSnapshot, () -> then(restoreAggregateFromSnapshot).should().restore(Snapshot.DEFAULT, events, AGGREGATE_VERSION_2));
+            given(restoreAggregateFromSnapshot.restore(Snapshot.DEFAULT, events, Aggregate.VERSION_2)).willReturn(aggregate);
+            addInteraction(restoreAggregateFromSnapshot, () -> then(restoreAggregateFromSnapshot).should().restore(Snapshot.DEFAULT, events, Aggregate.VERSION_2));
         }
 
         public void whenGetByIdIsCalled() {

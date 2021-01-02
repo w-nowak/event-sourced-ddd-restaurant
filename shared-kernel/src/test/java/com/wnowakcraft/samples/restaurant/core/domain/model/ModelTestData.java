@@ -11,13 +11,7 @@ import static com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Ver
 import static java.util.Collections.emptyList;
 
 public class ModelTestData {
-    public static final InitEvent AGGREGATE_INIT_EVENT = new InitEvent();
-    public static final SampleEvent AGGREGATE_SAMPLE_EVENT = new SampleEvent();
-
-    public static final Version AGGREGATE_VERSION_1 = Version.of(1);
-    public static final Version AGGREGATE_VERSION_2 = Version.of(2);
-
-    public static final Aggregate AGGREGATE = Aggregate.ofVersion(AGGREGATE_VERSION_1);
+    public static final Aggregate AGGREGATE = Aggregate.ofVersion(Aggregate.VERSION_1);
 
     public static class AggregateId extends com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Id {
         public static final String DOMAIN_NAME = "shared-kernel";
@@ -71,7 +65,7 @@ public class ModelTestData {
     @RequiredArgsConstructor
     public static class Snapshot implements com.wnowakcraft.samples.restaurant.core.domain.model.Snapshot<Snapshot.Id, AggregateId> {
         private static final Instant INSTANT_NOW = Instant.now();
-        public static final Snapshot DEFAULT = new Snapshot(Snapshot.Id.DEFAULT, AggregateId.DEFAULT_ONE, INSTANT_NOW, AGGREGATE_VERSION_1);
+        public static final Snapshot DEFAULT = new Snapshot(Snapshot.Id.DEFAULT, AggregateId.DEFAULT_ONE, INSTANT_NOW, Aggregate.VERSION_1);
 
         private final Id snapshotId;
         private final AggregateId aggregateId;
@@ -123,6 +117,11 @@ public class ModelTestData {
     }
 
     public static class Aggregate extends AbstractAggregate<AggregateId, Event, Snapshot> {
+        public static final InitEvent INIT_EVENT = new InitEvent();
+        public static final SampleEvent SAMPLE_EVENT = new SampleEvent();
+        public static final Version VERSION_1 = Version.of(1);
+        public static final Version VERSION_2 = Version.of(2);
+
         private Snapshot snapshotUsedToRestoreAggregate;
         private Collection<? extends Event> eventsAppliedToAggregate;
 
@@ -140,8 +139,8 @@ public class ModelTestData {
 
         public static Aggregate ofVersion(Aggregate.Version version) {
             return new Aggregate(
-                    List.of(AGGREGATE_INIT_EVENT, AGGREGATE_SAMPLE_EVENT),
-                    AGGREGATE_INIT_EVENT.getClass(),
+                    List.of(INIT_EVENT, SAMPLE_EVENT),
+                    INIT_EVENT.getClass(),
                     version
             );
         }
