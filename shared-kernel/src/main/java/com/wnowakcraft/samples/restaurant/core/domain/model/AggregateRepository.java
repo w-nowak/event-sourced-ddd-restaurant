@@ -1,14 +1,19 @@
 package com.wnowakcraft.samples.restaurant.core.domain.model;
 
+import com.wnowakcraft.logging.LogAfter;
+import com.wnowakcraft.logging.LogBefore;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
+import static com.wnowakcraft.logging.Level.DEBUG;
 import static java.util.Objects.requireNonNull;
 
+@Slf4j
 @RequiredArgsConstructor(onConstructor_ = { @Inject })
 public class AggregateRepository<
         E extends Event<?>,
@@ -21,12 +26,16 @@ public class AggregateRepository<
     @NonNull private final RestoreAggregateFromSnapshot<E, A, S, ID> restoreAggregateFromSnapshot;
     @NonNull private final RestoreAggregateFromEvents<E, A, ID> restoreAggregateFromEvents;
 
+    @LogBefore(value = "Saving aggregate with id of {p0.getId().getValue()}...", level = DEBUG)
+    @LogAfter(value = "Aggregate has been saved.", level = DEBUG)
     public CompletableFuture<Aggregate.Version> save(A aggregate) {
         requireNonNull(aggregate, "aggregate");
 
         return eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges());
     }
 
+    @LogBefore(value = "Restoring aggregate with id of {p0.getValue()}...", level = DEBUG)
+    @LogAfter(value = "Aggregate has been restored.", level = DEBUG)
     public A getById(ID aggregateId) {
         requireNonNull(aggregateId, "aggregateId");
 
