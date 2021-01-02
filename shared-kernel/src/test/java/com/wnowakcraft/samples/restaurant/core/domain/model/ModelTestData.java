@@ -17,11 +17,7 @@ public class ModelTestData {
     public static final Version AGGREGATE_VERSION_1 = Version.of(1);
     public static final Version AGGREGATE_VERSION_2 = Version.of(2);
 
-    public static final Aggregate AGGREGATE = new Aggregate(
-            List.of(AGGREGATE_INIT_EVENT, AGGREGATE_SAMPLE_EVENT),
-            AGGREGATE_INIT_EVENT.getClass(),
-            AGGREGATE_VERSION_1
-    );
+    public static final Aggregate AGGREGATE = Aggregate.ofVersion(AGGREGATE_VERSION_1);
 
     public static class AggregateId extends com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Id {
         public static final String DOMAIN_NAME = "shared-kernel";
@@ -140,6 +136,14 @@ public class ModelTestData {
 
         public Aggregate(Snapshot snapshot, Collection<? extends Event> events, Version version) {
             super(snapshot, events, version);
+        }
+
+        public static Aggregate ofVersion(Aggregate.Version version) {
+            return new Aggregate(
+                    List.of(AGGREGATE_INIT_EVENT, AGGREGATE_SAMPLE_EVENT),
+                    AGGREGATE_INIT_EVENT.getClass(),
+                    version
+            );
         }
 
         @Override
