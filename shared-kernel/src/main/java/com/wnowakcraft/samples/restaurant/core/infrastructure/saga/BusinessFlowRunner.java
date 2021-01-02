@@ -18,7 +18,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static com.wnowakcraft.logging.Level.DEBUG;
 import static com.wnowakcraft.logging.Level.INFO;
 import static com.wnowakcraft.preconditions.Preconditions.requireStateThat;
 import static java.util.Optional.empty;
@@ -154,8 +153,8 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
             return businessFlowDefinition.getBusinessFlowSteps().get(flowCurrentStateIndex);
         }
 
-        @LogBefore(value = "Received response accepted, consuming...", level = DEBUG)
-        @LogAfter(value = "Received response consumed", level = DEBUG)
+        @LogBefore("Received response accepted, consuming...")
+        @LogAfter("Received response consumed")
         void consume(Response commandResponse) {
             requireFlowNotYetComplete();
 
@@ -198,8 +197,8 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
             return flowCurrentState;
         }
 
-        @LogBefore(value = "Moving to next command...", level = DEBUG)
-        @LogAfter(value = "Next command is: {r.getClass().getSimpleName()}", level = DEBUG)
+        @LogBefore("Moving to next command...")
+        @LogAfter("Next command is: {r.getClass().getSimpleName()}")
         Optional<Command> moveOnToNextCommand() {
             var possibleNextCommand = getFollowingCommand();
 
@@ -249,8 +248,8 @@ public class BusinessFlowRunner <E extends Event<?>, S> {
             flowCurrentState = flowState;
         }
 
-        @LogBefore(value = "The init event received: {p0.getClass().getSimpleName()}. Initializing a new flow to handle this event.", level = DEBUG)
-        @LogAfter(value = "The new flow initialized.", level = DEBUG)
+        @LogBefore("The init event received: {p0.getClass().getSimpleName()}. Initializing a new flow to handle this event.")
+        @LogAfter("The new flow initialized.")
         StateEnvelope<S> initWith(E event) {
             requireFlowNotYetInitialized();
 

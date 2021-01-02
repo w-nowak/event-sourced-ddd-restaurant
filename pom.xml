@@ -28,8 +28,8 @@
         </dependency>
         <dependency>
             <groupId>com.wnowakcraft</groupId>
-            <artifactId>annoteted-logging</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
+            <artifactId>annotated-logging</artifactId>
+            <version>1.0.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -170,7 +170,7 @@
                     <aspectLibraries>
                         <aspectLibrary>
                             <groupId>com.wnowakcraft</groupId>
-                            <artifactId>annoteted-logging</artifactId>
+                            <artifactId>annotated-logging</artifactId>
                         </aspectLibrary>
                     </aspectLibraries>
                     <weaveDirectories>
@@ -194,8 +194,8 @@
                     </dependency>
                     <dependency>
                         <groupId>com.wnowakcraft</groupId>
-                        <artifactId>annoteted-logging</artifactId>
-                        <version>1.0.1-SNAPSHOT</version>
+                        <artifactId>annotated-logging</artifactId>
+                        <version>1.0.2-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
             </plugin>
