@@ -11,8 +11,6 @@ import static com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Ver
 import static java.util.Collections.emptyList;
 
 public class ModelTestData {
-    public static final Aggregate AGGREGATE = Aggregate.ofVersion(Aggregate.VERSION_1);
-
     public static class AggregateId extends com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Id {
         public static final String DOMAIN_NAME = "shared-kernel";
         public static final String AGGREGATE_NAME = "testAggregate";

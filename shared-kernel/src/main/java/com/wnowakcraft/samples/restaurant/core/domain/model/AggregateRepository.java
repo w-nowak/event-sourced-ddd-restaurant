@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 import static java.util.Objects.requireNonNull;
 
@@ -30,7 +31,16 @@ public class AggregateRepository<
     public CompletableFuture<Aggregate.Version> save(A aggregate) {
         requireNonNull(aggregate, "aggregate");
 
-        return eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges());
+        return eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges())
+                .whenCompleteAsync(updateVersionFor(aggregate));
+    }
+
+    private BiConsumer<Aggregate.Version, Throwable> updateVersionFor(A aggregate) {
+        return (newAggregateVersion, exception) -> {
+            if (newAggregateVersion != null) {
+                aggregate.updateVersionTo(newAggregateVersion);
+            }
+        };
     }
 
     @LogBefore("Restoring aggregate with id of {p0.getValue()}...")

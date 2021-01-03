@@ -28,6 +28,7 @@ class AggregateRepositoryTest {
     @BeforeEach
     public void setUp() {
         fixture = new Fixture();
+        fixture.givenAn(Aggregate.ofVersion(Aggregate.VERSION_1));
     }
 
     @AfterEach
@@ -38,19 +39,18 @@ class AggregateRepositoryTest {
 
     @Test
     void save_storesAggregateChangesIntoEventStore_andReturnsCorrectAggregateVersion() throws Exception {
-        fixture.givenAn(AGGREGATE);
-        fixture.givenAggregateChangesAreAppendedToEventStore();
+        fixture.givenAggregateChangesAreAppendedToEventStoreAndNewAggregateVersionIs(Aggregate.VERSION_2);
 
         fixture.whenSaveIsCalled();
 
-        fixture.thenReturnedVersionIsNextAggregateVersion();
+        fixture.thenReturnedVersionIs(Aggregate.VERSION_2);
+        fixture.thenAggregateVersionIsUpdatedTo(Aggregate.VERSION_2);
         fixture.andVerifyNoInteractionWithDependenciesOtherThanEventStore();
     }
 
     @Test
     void getById_returnsAggregateRecreatedFromEvents_whenNoSnapshotIsAvailable() {
         var restoreEvents = List.<Event>of(Aggregate.INIT_EVENT, Aggregate.SAMPLE_EVENT);
-        fixture.givenAn(AGGREGATE);
         fixture.givenNoSnapshotIsAvailableForGivenAggregate();
         fixture.givenEventStoreReturnsEventStreamWithAll(restoreEvents);
         fixture.givenAggregateIsRestoredWithJustEvents();
@@ -64,7 +64,6 @@ class AggregateRepositoryTest {
     @Test
     void getById_returnsAggregateRecreatedFromSnapshotAndEvents_whenSnapshotIsAvailable() {
         var restoreEvents = List.<Event>of(Aggregate.SAMPLE_EVENT);
-        fixture.givenAn(AGGREGATE);
         fixture.givenSnapshotIsAvailableForGivenAggregate();
         fixture.givenEventStoreForGivenAggregateVersionReturnsEventStreamWith(restoreEvents);
         fixture.givenAggregateIsRestoredWithSnapshotAndEvents();
@@ -78,7 +77,6 @@ class AggregateRepositoryTest {
     @Test
     void getById_returnsAggregateRecreatedFromSnapshotAndEmptyStreamOfEvents_whenSnapshotIsAvailable_andEmptyEventStreamIsReturned() {
         var restoreEvents = Collections.<Event>emptyList();
-        fixture.givenAn(AGGREGATE);
         fixture.givenSnapshotIsAvailableForGivenAggregate();
         fixture.givenEventStoreForGivenAggregateVersionReturnsEventStreamWith(restoreEvents);
         fixture.givenAggregateIsRestoredWithSnapshotAndEvents();
@@ -108,9 +106,9 @@ class AggregateRepositoryTest {
 
         private Aggregate aggregate;
         private Aggregate actualAggregate;
+        private Version actualAggregateVersion;
         private Snapshot snapshot;
         private Collection<Event> events;
-        private Version aggregateVersion;
         private Collection<Runnable> interactions = new ArrayList<>();
         private Collection<Object> interactionObjects = new ArrayList<>();
 
@@ -124,18 +122,23 @@ class AggregateRepositoryTest {
             this.aggregate = aggregate;
         }
 
-        public void givenAggregateChangesAreAppendedToEventStore() {
-            given(eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges()))
-                    .willReturn(CompletableFuture.completedFuture(Aggregate.VERSION_2));
-            interactions.add(() -> then(eventStore).should().append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges()));
+        public void givenAggregateChangesAreAppendedToEventStoreAndNewAggregateVersionIs(Aggregate.Version newVersion) {
+            var oldAggregateVersion = aggregate.getVersion();
+            given(eventStore.append(aggregate.getId(), oldAggregateVersion, aggregate.getChanges()))
+                    .willReturn(CompletableFuture.completedFuture(newVersion));
+            interactions.add(() -> then(eventStore).should().append(aggregate.getId(), oldAggregateVersion, aggregate.getChanges()));
         }
 
         public void whenSaveIsCalled() throws Exception {
-            aggregateVersion = aggregateRepository.save(AGGREGATE).get();
+            actualAggregateVersion = aggregateRepository.save(aggregate).get();
         }
 
-        public void thenReturnedVersionIsNextAggregateVersion() {
-            assertThat(aggregateVersion).isEqualTo(Aggregate.VERSION_2);
+        public void thenReturnedVersionIs(Aggregate.Version expectedVersion) {
+            assertThat(actualAggregateVersion).isEqualTo(expectedVersion);
+        }
+
+        public void thenAggregateVersionIsUpdatedTo(Aggregate.Version expectedVersion) {
+            assertThat(aggregate.getVersion()).isEqualTo(expectedVersion);
         }
 
         public void givenSnapshotIsAvailableForGivenAggregate() {
