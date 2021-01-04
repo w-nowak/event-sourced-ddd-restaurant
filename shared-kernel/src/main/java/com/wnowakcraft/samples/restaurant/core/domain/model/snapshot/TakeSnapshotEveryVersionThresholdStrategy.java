@@ -6,7 +6,8 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.Snapshot;
 import com.wnowakcraft.samples.restaurant.core.domain.model.WithUpdatableVersion;
 import lombok.RequiredArgsConstructor;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.function.Function;
 
 import static com.wnowakcraft.preconditions.Preconditions.requireNonNull;
 
@@ -21,13 +22,18 @@ public class TakeSnapshotEveryVersionThresholdStrategy<
     private final int versionThreshold;
 
     @Override
-    public boolean shouldTakeNewSnapshot(A aggregate, @Nullable S previousSnapshot) {
+    public boolean shouldTakeNewSnapshot(A aggregate, Function<A, Optional<S>> previousSnapshotProvider) {
         requireNonNull(aggregate, "aggregate");
+        requireNonNull(previousSnapshotProvider, "previousSnapshotProvider");
 
-        return aggregate.getVersion().number >= aggregateVersionFrom(previousSnapshot) + versionThreshold;
+        return aggregate.getVersion().number >=
+                snapshottedAggregateVersionUsing(previousSnapshotProvider, aggregate) + versionThreshold;
     }
 
-    private long aggregateVersionFrom(S snapshot) {
-        return snapshot != null ? snapshot.getAggregateVersion().number : 0;
+    private long snapshottedAggregateVersionUsing(Function<A, Optional<S>> previousSnapshotProvider, A aggregate) {
+        return previousSnapshotProvider
+                .apply(aggregate)
+                .map(snapshot -> snapshot.getAggregateVersion().number)
+                .orElse(0L);
     }
 }

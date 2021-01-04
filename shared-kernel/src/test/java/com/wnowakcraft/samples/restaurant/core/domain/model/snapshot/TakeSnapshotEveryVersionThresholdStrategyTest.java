@@ -7,6 +7,9 @@ import com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData.Event;
 import com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData.Snapshot;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+import java.util.function.Function;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TakeSnapshotEveryVersionThresholdStrategyTest {
@@ -19,9 +22,13 @@ class TakeSnapshotEveryVersionThresholdStrategyTest {
         var aggregate = Aggregate.ofVersion(Aggregate.Version.of(25));
         var snapshot = Snapshot.ofVersion(Aggregate.Version.of(15));
 
-        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, snapshot);
+        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, providerOf(snapshot));
 
         assertThat(shouldTakeSnapshot).isTrue();
+    }
+
+    private Function<Aggregate, Optional<Snapshot>> providerOf(Snapshot snapshot) {
+        return a -> Optional.of(snapshot);
     }
 
     @Test
@@ -29,7 +36,7 @@ class TakeSnapshotEveryVersionThresholdStrategyTest {
         var aggregate = Aggregate.ofVersion(Aggregate.Version.of(26));
         var snapshot = Snapshot.ofVersion(Aggregate.Version.of(15));
 
-        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, snapshot);
+        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, providerOf(snapshot));
 
         assertThat(shouldTakeSnapshot).isTrue();
     }
@@ -39,7 +46,7 @@ class TakeSnapshotEveryVersionThresholdStrategyTest {
         var aggregate = Aggregate.ofVersion(Aggregate.Version.of(24));
         var snapshot = Snapshot.ofVersion(Aggregate.Version.of(15));
 
-        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, snapshot);
+        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, providerOf(snapshot));
 
         assertThat(shouldTakeSnapshot).isFalse();
     }
@@ -49,17 +56,20 @@ class TakeSnapshotEveryVersionThresholdStrategyTest {
         var aggregate = Aggregate.ofVersion(Aggregate.Version.of(11));
         Snapshot noSnapshot = null;
 
-        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, noSnapshot);
+        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, noSnapshotProvider());
 
         assertThat(shouldTakeSnapshot).isTrue();
+    }
+
+    private Function<Aggregate, Optional<Snapshot>> noSnapshotProvider() {
+        return a -> Optional.empty();
     }
 
     @Test
     void shouldReturnTrue_whenAggregateVersionIsEqualThreshold_andNoSnapshotWasYetTaken() {
         var aggregate = Aggregate.ofVersion(Aggregate.Version.of(10));
-        Snapshot noSnapshot = null;
 
-        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, noSnapshot);
+        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, noSnapshotProvider());
 
         assertThat(shouldTakeSnapshot).isTrue();
     }
@@ -67,9 +77,8 @@ class TakeSnapshotEveryVersionThresholdStrategyTest {
     @Test
     void shouldReturnFalse_whenAggregateVersionIsLessThanThreshold_andNoSnapshotWasYetTaken() {
         var aggregate = Aggregate.ofVersion(Aggregate.Version.of(9));
-        Snapshot noSnapshot = null;
 
-        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, noSnapshot);
+        var shouldTakeSnapshot = takeSnapshotStrategy.shouldTakeNewSnapshot(aggregate, noSnapshotProvider());
 
         assertThat(shouldTakeSnapshot).isFalse();
     }
