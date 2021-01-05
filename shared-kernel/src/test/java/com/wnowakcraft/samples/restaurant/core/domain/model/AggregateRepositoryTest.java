@@ -50,8 +50,8 @@ class AggregateRepositoryTest {
 
         fixture.thenReturnedVersionIs(Aggregate.VERSION_2);
         fixture.thenAggregateVersionIsUpdatedTo(Aggregate.VERSION_2);
-        fixture.thenVerifyNoInteractionWithSnapshotRepository();
-        fixture.andVerifyNoInteractionWithRestoringAggregateDependencies();
+        fixture.thenThereShouldBeNoInteractionWithSnapshotRepository();
+        fixture.andThereShouldBeNoInteractionWithRestoringAggregateDependencies();
     }
 
     @Test
@@ -64,7 +64,7 @@ class AggregateRepositoryTest {
         fixture.thenReturnedVersionIs(Aggregate.VERSION_2);
         fixture.thenAggregateVersionIsUpdatedTo(Aggregate.VERSION_2);
         fixture.thenSnapshotOfAggregateShouldBeTaken();
-        fixture.andVerifyNoInteractionWithRestoringAggregateDependencies();
+        fixture.andThereShouldBeNoInteractionWithRestoringAggregateDependencies();
     }
 
     @Test
@@ -77,7 +77,7 @@ class AggregateRepositoryTest {
         fixture.whenGetByIdIsCalled();
 
         fixture.thenTheExpectedAggregateShouldBeReturned();
-        fixture.andVerifyNoInteractionWithRestoreAggregateFromSnapshotAndEvents();
+        fixture.andThereShouldBeNoInteractionWithRestoreAggregateFromSnapshotAndEvents();
     }
 
     @Test
@@ -90,7 +90,7 @@ class AggregateRepositoryTest {
         fixture.whenGetByIdIsCalled();
 
         fixture.thenTheExpectedAggregateShouldBeReturned();
-        fixture.andVerifyNoInteractionWithRestoreAggregateFromEvents();
+        fixture.andThereShouldBeNoInteractionWithRestoreAggregateFromEvents();
     }
 
     @Test
@@ -103,7 +103,7 @@ class AggregateRepositoryTest {
         fixture.whenGetByIdIsCalled();
 
         fixture.thenTheExpectedAggregateShouldBeReturned();
-        fixture.andVerifyNoInteractionWithRestoreAggregateFromEvents();
+        fixture.andThereShouldBeNoInteractionWithRestoreAggregateFromEvents();
     }
 
     @Test
@@ -212,19 +212,19 @@ class AggregateRepositoryTest {
             then(snapshotRepository).should().addNewSnapshot(aggregate.takeSnapshot());
         }
 
-        public void thenVerifyNoInteractionWithSnapshotRepository() {
+        public void thenThereShouldBeNoInteractionWithSnapshotRepository() {
             then(snapshotRepository).shouldHaveNoInteractions();
         }
 
-        public void andVerifyNoInteractionWithRestoreAggregateFromSnapshotAndEvents() {
+        public void andThereShouldBeNoInteractionWithRestoreAggregateFromSnapshotAndEvents() {
             then(restoreAggregateFromSnapshot).shouldHaveNoInteractions();
         }
 
-        public void andVerifyNoInteractionWithRestoreAggregateFromEvents() {
+        public void andThereShouldBeNoInteractionWithRestoreAggregateFromEvents() {
             then(restoreAggregateFromEvents).shouldHaveNoInteractions();
         }
 
-        public void andVerifyNoInteractionWithRestoringAggregateDependencies() {
+        public void andThereShouldBeNoInteractionWithRestoringAggregateDependencies() {
             then(restoreAggregateFromEvents).shouldHaveNoInteractions();
             then(restoreAggregateFromSnapshot).shouldHaveNoInteractions();
 
