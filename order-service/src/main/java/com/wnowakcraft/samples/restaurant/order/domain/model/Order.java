@@ -121,6 +121,7 @@ public class Order extends AbstractAggregate<Order.Id, OrderEvent, OrderSnapshot
         apply(orderApprovedEvent);
     }
 
+    @Override
     public OrderSnapshot takeSnapshot() {
         return OrderSnapshot.newSnapshot(getId(), getVersion(), customerId, restaurantId, status, orderItems);
     }

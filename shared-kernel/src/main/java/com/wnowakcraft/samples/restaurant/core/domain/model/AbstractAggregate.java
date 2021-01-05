@@ -1,5 +1,6 @@
 package com.wnowakcraft.samples.restaurant.core.domain.model;
 
+import com.wnowakcraft.samples.restaurant.core.domain.model.snapshot.Snapshottable;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -14,7 +15,7 @@ import static java.util.List.of;
 @ToString
 @EqualsAndHashCode
 public abstract class AbstractAggregate<ID extends Aggregate.Id, E extends Event<ID>, S extends Snapshot<? extends Snapshot.Id, ID>>
-        implements Aggregate<ID, E>, WithUpdatableVersion {
+        implements Aggregate<ID, E>, WithUpdatableVersion, Snapshottable<S> {
     private final ID aggregateId;
     protected final Collection<E> changes;
     private Version version;

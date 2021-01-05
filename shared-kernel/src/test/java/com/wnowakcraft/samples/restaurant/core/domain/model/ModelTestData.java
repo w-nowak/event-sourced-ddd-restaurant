@@ -153,6 +153,11 @@ public class ModelTestData {
             snapshotUsedToRestoreAggregate = snapshot;
         }
 
+        @Override
+        public Snapshot takeSnapshot() {
+            return Snapshot.DEFAULT;
+        }
+
         public Snapshot getSnapshotUsedToRestoreAggregate() {
             return snapshotUsedToRestoreAggregate;
         }
