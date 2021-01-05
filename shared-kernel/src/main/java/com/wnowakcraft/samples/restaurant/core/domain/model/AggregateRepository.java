@@ -2,6 +2,8 @@ package com.wnowakcraft.samples.restaurant.core.domain.model;
 
 import com.wnowakcraft.logging.LogAfter;
 import com.wnowakcraft.logging.LogBefore;
+import com.wnowakcraft.samples.restaurant.core.domain.model.snapshot.Snapshottable;
+import com.wnowakcraft.samples.restaurant.core.domain.model.snapshot.TakeSnapshotStrategy;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +19,13 @@ import static java.util.Objects.requireNonNull;
 @RequiredArgsConstructor(onConstructor_ = { @Inject })
 public class AggregateRepository<
         E extends Event<?>,
-        A extends Aggregate<ID, E> & WithUpdatableVersion,
+        A extends Aggregate<ID, E> & WithUpdatableVersion & Snapshottable<S>,
         S extends Snapshot<? extends Snapshot.Id, ID>,
         ID extends Aggregate.Id>  {
 
     @NonNull private final EventStore<E, A, ID> eventStore;
     @NonNull private final SnapshotRepository<S, ID> snapshotRepository;
+    @NonNull private final TakeSnapshotStrategy<E, A, S, ID> takeSnapshotStrategy;
     @NonNull private final RestoreAggregateFromSnapshot<E, A, S, ID> restoreAggregateFromSnapshot;
     @NonNull private final RestoreAggregateFromEvents<E, A, ID> restoreAggregateFromEvents;
 
@@ -32,13 +35,25 @@ public class AggregateRepository<
         requireNonNull(aggregate, "aggregate");
 
         return eventStore.append(aggregate.getId(), aggregate.getVersion(), aggregate.getChanges())
-                .whenCompleteAsync(updateVersionFor(aggregate));
+                .whenCompleteAsync(updateVersionOf(aggregate))
+                .whenCompleteAsync(doSnapshottingWhenRequiredOf(aggregate));
     }
 
-    private BiConsumer<Aggregate.Version, Throwable> updateVersionFor(A aggregate) {
+    private BiConsumer<Aggregate.Version, Throwable> updateVersionOf(A aggregate) {
         return (newAggregateVersion, exception) -> {
             if (newAggregateVersion != null) {
                 aggregate.updateVersionTo(newAggregateVersion);
+            }
+        };
+    }
+
+    private BiConsumer<Aggregate.Version, Throwable> doSnapshottingWhenRequiredOf(A ofAggregate) {
+        return (newAggregateVersion, exception) -> {
+            if (takeSnapshotStrategy.shouldTakeNewSnapshot(
+                    ofAggregate,
+                    aggregate -> snapshotRepository.findLatestSnapshotFor(aggregate.getId())
+            )) {
+                snapshotRepository.addNewSnapshot(ofAggregate.takeSnapshot());
             }
         };
     }

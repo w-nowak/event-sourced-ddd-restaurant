@@ -4,6 +4,7 @@ import com.google.common.testing.NullPointerTester;
 import com.wnowakcraft.samples.restaurant.core.domain.model.Aggregate.Version;
 import com.wnowakcraft.samples.restaurant.core.domain.model.AggregateRepository.RestoreAggregateFromEvents;
 import com.wnowakcraft.samples.restaurant.core.domain.model.AggregateRepository.RestoreAggregateFromSnapshot;
+import com.wnowakcraft.samples.restaurant.core.domain.model.snapshot.TakeSnapshotStrategy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import static com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData.Aggregate;
 import static com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData.Event;
@@ -19,6 +21,8 @@ import static com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData
 import static com.wnowakcraft.samples.restaurant.core.domain.model.ModelTestData.*;
 import static java.util.Optional.empty;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -40,12 +44,27 @@ class AggregateRepositoryTest {
     @Test
     void save_storesAggregateChangesIntoEventStore_andReturnsCorrectAggregateVersion() throws Exception {
         fixture.givenAggregateChangesAreAppendedToEventStoreAndNewAggregateVersionIs(Aggregate.VERSION_2);
+        fixture.givenTakeSnapshotStrategyReturns(false);
 
         fixture.whenSaveIsCalled();
 
         fixture.thenReturnedVersionIs(Aggregate.VERSION_2);
         fixture.thenAggregateVersionIsUpdatedTo(Aggregate.VERSION_2);
-        fixture.andVerifyNoInteractionWithDependenciesOtherThanEventStore();
+        fixture.thenVerifyNoInteractionWithSnapshotRepository();
+        fixture.andVerifyNoInteractionWithRestoringAggregateDependencies();
+    }
+
+    @Test
+    void save_storesAggregateChangesIntoEventStore_createsAggregateSnapshot_andReturnsCorrectAggregateVersion() throws Exception {
+        fixture.givenAggregateChangesAreAppendedToEventStoreAndNewAggregateVersionIs(Aggregate.VERSION_2);
+        fixture.givenTakeSnapshotStrategyReturns(true);
+
+        fixture.whenSaveIsCalled();
+
+        fixture.thenReturnedVersionIs(Aggregate.VERSION_2);
+        fixture.thenAggregateVersionIsUpdatedTo(Aggregate.VERSION_2);
+        fixture.thenSnapshotOfAggregateShouldBeTaken();
+        fixture.andVerifyNoInteractionWithRestoringAggregateDependencies();
     }
 
     @Test
@@ -100,6 +119,7 @@ class AggregateRepositoryTest {
     private static class Fixture {
         @Mock private EventStore<Event, Aggregate, AggregateId> eventStore;
         @Mock private SnapshotRepository<ModelTestData.Snapshot, ModelTestData.AggregateId> snapshotRepository;
+        @Mock private TakeSnapshotStrategy<Event, Aggregate, Snapshot, AggregateId> takeSnapshotStrategy;
         @Mock private RestoreAggregateFromSnapshot<Event, Aggregate, Snapshot, AggregateId> restoreAggregateFromSnapshot;
         @Mock private RestoreAggregateFromEvents<Event, Aggregate, AggregateId> restoreAggregateFromEvents;
         private AggregateRepository<Event, Aggregate, Snapshot, AggregateId> aggregateRepository;
@@ -115,7 +135,9 @@ class AggregateRepositoryTest {
         public Fixture() {
             MockitoAnnotations.initMocks(this);
             aggregateRepository =
-                    new AggregateRepository<>(eventStore, snapshotRepository, restoreAggregateFromSnapshot, restoreAggregateFromEvents);
+                    new AggregateRepository<>(
+                            eventStore, snapshotRepository, takeSnapshotStrategy, restoreAggregateFromSnapshot, restoreAggregateFromEvents
+                    );
         }
 
         public void givenAn(Aggregate aggregate) {
@@ -173,12 +195,25 @@ class AggregateRepositoryTest {
             addInteraction(restoreAggregateFromSnapshot, () -> then(restoreAggregateFromSnapshot).should().restore(Snapshot.DEFAULT, events, Aggregate.VERSION_2));
         }
 
+        public void givenTakeSnapshotStrategyReturns(boolean shouldTakeSnapshot) {
+            given(takeSnapshotStrategy.shouldTakeNewSnapshot(eq(aggregate), any(Function.class))).willReturn(shouldTakeSnapshot);
+            addInteraction(restoreAggregateFromSnapshot, () -> then(takeSnapshotStrategy).should().shouldTakeNewSnapshot(eq(aggregate), any(Function.class)));
+        }
+
         public void whenGetByIdIsCalled() {
             actualAggregate = aggregateRepository.getById(aggregate.getId());
         }
 
         public void thenTheExpectedAggregateShouldBeReturned() {
             assertThat(actualAggregate).isEqualTo(aggregate);
+        }
+
+        public void thenSnapshotOfAggregateShouldBeTaken() {
+            then(snapshotRepository).should().addNewSnapshot(aggregate.takeSnapshot());
+        }
+
+        public void thenVerifyNoInteractionWithSnapshotRepository() {
+            then(snapshotRepository).shouldHaveNoInteractions();
         }
 
         public void andVerifyNoInteractionWithRestoreAggregateFromSnapshotAndEvents() {
@@ -189,8 +224,7 @@ class AggregateRepositoryTest {
             then(restoreAggregateFromEvents).shouldHaveNoInteractions();
         }
 
-        public void andVerifyNoInteractionWithDependenciesOtherThanEventStore() {
-            then(snapshotRepository).shouldHaveNoInteractions();
+        public void andVerifyNoInteractionWithRestoringAggregateDependencies() {
             then(restoreAggregateFromEvents).shouldHaveNoInteractions();
             then(restoreAggregateFromSnapshot).shouldHaveNoInteractions();
 
