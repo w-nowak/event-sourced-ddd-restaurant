@@ -4,6 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>com.wnowakcraft</groupId>
+        <artifactId>annotated-logging-config-pom</artifactId>
+        <version>1.0.2-SNAPSHOT</version>
+    </parent>
+
     <groupId>com.wnowakcraft.samples.event-sourced-ddd</groupId>
     <artifactId>restaurant</artifactId>
     <packaging>pom</packaging>
@@ -11,13 +17,15 @@
 
     <modules>
         <module>shared-kernel</module>
+        <module>menu-service</module>
         <module>order-service</module>
+        <module>order-service-app</module>
         <module>order-service-infrastructure-kafka</module>
     </modules>
 
     <properties>
         <junit-jupiter.version>5.5.0</junit-jupiter.version>
-        <aspectj.version>1.9.5</aspectj.version>
+        <java.version>11</java.version>
     </properties>
 
     <dependencies>
@@ -25,11 +33,6 @@
             <groupId>com.wnowakcraft</groupId>
             <artifactId>preconditions</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.wnowakcraft</groupId>
-            <artifactId>annotated-logging</artifactId>
-            <version>1.0.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -56,19 +59,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- aspectj -->
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-            <version>${aspectj.version}</version>
-        </dependency>
-
         <!-- logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.0-alpha1</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j18-impl</artifactId>
@@ -138,8 +129,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.0</version>
                 <configuration>
-                    <release>11</release>
-                    <source>11</source>
+                    <release>${java.version}</release>
+                    <source>${java.version}</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -150,52 +141,6 @@
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-surefire-provider</artifactId>
                         <version>1.2.0</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-            <plugin>
-                <groupId>com.nickwongdev</groupId>
-                <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.12.6</version>
-                <configuration>
-                    <complianceLevel>11</complianceLevel>
-                    <source>11</source>
-                    <target>11</target>
-                    <showWeaveInfo>true</showWeaveInfo>
-                    <verbose>true</verbose>
-                    <Xlint>ignore</Xlint>
-                    <encoding>UTF-8</encoding>
-                    <forceAjcCompile>true</forceAjcCompile>
-                    <sources/><!-- necessary to skip waving aspects from source java files -->
-                    <aspectLibraries>
-                        <aspectLibrary>
-                            <groupId>com.wnowakcraft</groupId>
-                            <artifactId>annotated-logging</artifactId>
-                        </aspectLibrary>
-                    </aspectLibraries>
-                    <weaveDirectories>
-                        <weaveDirectory>${project.build.directory}/classes</weaveDirectory>
-                    </weaveDirectories>
-                </configuration>
-                <executions>
-                    <execution>
-                        <!-- compiles from classes as opposed to java source files -->
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjtools</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.wnowakcraft</groupId>
-                        <artifactId>annotated-logging</artifactId>
-                        <version>1.0.2-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
             </plugin>
