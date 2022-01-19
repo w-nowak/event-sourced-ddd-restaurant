@@ -17,9 +17,7 @@
 
     <modules>
         <module>shared-kernel</module>
-        <module>menu-service</module>
         <module>order-service</module>
-        <module>order-service-app</module>
         <module>order-service-infrastructure-kafka</module>
     </modules>
 
